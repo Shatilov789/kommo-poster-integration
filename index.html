@@ -373,7 +373,7 @@
 
         // API запросы через proxy
         async function apiRequest(endpoint, method = 'GET', data = null) {
-            let url = `${API_BASE}?endpoint=${endpoint}`;
+            let url = `${API_BASE}?endpoint=${endpoint}&_t=${Date.now()}`; // Cache buster
             
             // Для dash.getTransaction добавляем параметры
             if (endpoint === 'dash.getTransaction') {
@@ -864,31 +864,23 @@
                 // Отображаем основную информацию сразу
                 displayCheckInfo(currentTransaction);
                 
+                // Загружаем товары для получения названий И цен
+                console.log('Loading products for names and prices...');
+                const productsResponse = await apiRequest(`menu.getProducts`);
+                console.log('Products loaded:', productsResponse);
+                
+                availableProducts = productsResponse.response || [];
+                
+                // Только ТЕПЕРЬ отображаем товары с названиями и ценами
+                displayProducts(currentTransaction.products || []);
+                loadProductsSelect(availableProducts);
+                
                 // Показываем интерфейс
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('productsSection').style.display = 'block';
                 document.getElementById('actions').style.display = 'block';
                 
-                // Показываем товары без цен пока
-                displayProducts(currentTransaction.products || []);
-                
-                // Загружаем товары для получения цен
-                try {
-                    console.log('Loading products for prices...');
-                    const productsResponse = await apiRequest(`menu.getProducts`);
-                    console.log('Products loaded:', productsResponse);
-                    
-                    availableProducts = productsResponse.response || [];
-                    
-                    // Перерисовываем товары с правильными ценами
-                    displayProducts(currentTransaction.products || []);
-                    loadProductsSelect(availableProducts);
-                    
-                    console.log('Products updated with prices');
-                } catch (error) {
-                    console.warn('Ошибка загрузки товаров:', error);
-                    // Продолжаем работу без списка товаров
-                }
+                console.log('All data loaded and displayed');
                 
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
