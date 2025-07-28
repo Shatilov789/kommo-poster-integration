@@ -344,6 +344,11 @@
     </div>
 
     <script>
+        // Отключаем аналитику для ускорения
+        window.gtag = function() {};
+        window.fbq = function() {};
+        window.dataLayer = [];
+        
         // Конфигурация
         const API_BASE = 'http://localhost:8080/api-proxy.php';
         const API_TOKEN = '067911:2866713790d620e5e99b0f4bdb88c212';
