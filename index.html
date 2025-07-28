@@ -1,4 +1,19 @@
-// Инициализация приложения
+// Обновление названий товаров (без перерисовки)
+        function updateProductNames() {
+            const productItems = document.querySelectorAll('.product-item');
+            
+            productItems.forEach(item => {
+                const productId = item.getAttribute('data-product-id');
+                const productInfo = availableProducts.find(p => p.product_id === productId);
+                
+                if (productInfo) {
+                    const nameElement = item.querySelector('.product-name');
+                    if (nameElement && nameElement.textContent.startsWith('Товар ID:')) {
+                        nameElement.textContent = productInfo.product_name;
+                    }
+                }
+            });
+        }        // Инициализация приложения
         async function init() {
             try {
                 const params = getUrlParams();
@@ -373,7 +388,7 @@
 
         // API запросы через proxy
         async function apiRequest(endpoint, method = 'GET', data = null) {
-            let url = `${API_BASE}?endpoint=${endpoint}&_t=${Date.now()}`; // Cache buster
+            let url = `${API_BASE}?endpoint=${endpoint}`;
             
             // Для dash.getTransaction добавляем параметры
             if (endpoint === 'dash.getTransaction') {
@@ -851,7 +866,7 @@
                     <p>Загружаем чек ${params.transaction_id}...</p>
                 `;
                 
-                // Сначала только чек
+                // Сначала только чек - БЫСТРО
                 const transactionResponse = await apiRequest(`dash.getTransaction`);
                 console.log('Transaction loaded:', transactionResponse);
                 
@@ -864,23 +879,31 @@
                 // Отображаем основную информацию сразу
                 displayCheckInfo(currentTransaction);
                 
-                // Загружаем товары для получения названий И цен
-                console.log('Loading products for names and prices...');
-                const productsResponse = await apiRequest(`menu.getProducts`);
-                console.log('Products loaded:', productsResponse);
-                
-                availableProducts = productsResponse.response || [];
-                
-                // Только ТЕПЕРЬ отображаем товары с названиями и ценами
+                // Показываем товары БЕЗ названий - но интерфейс уже работает
                 displayProducts(currentTransaction.products || []);
-                loadProductsSelect(availableProducts);
                 
-                // Показываем интерфейс
+                // Показываем интерфейс СРАЗУ - не ждем товары
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('productsSection').style.display = 'block';
                 document.getElementById('actions').style.display = 'block';
                 
-                console.log('All data loaded and displayed');
+                // Загружаем товары В ФОНЕ для названий
+                try {
+                    console.log('Loading products in background...');
+                    const productsResponse = await apiRequest(`menu.getProducts`);
+                    console.log('Products loaded, updating names...');
+                    
+                    availableProducts = productsResponse.response || [];
+                    
+                    // Обновляем ТОЛЬКО названия товаров, не перерисовываем всё
+                    updateProductNames();
+                    loadProductsSelect(availableProducts);
+                    
+                    console.log('Product names updated');
+                } catch (error) {
+                    console.warn('Ошибка загрузки товаров:', error);
+                    // Интерфейс уже работает, просто без названий
+                }
                 
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
