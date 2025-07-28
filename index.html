@@ -473,21 +473,33 @@
                 return;
             }
 
+            console.log('Displaying products:', products);
+            console.log('Available products for prices:', availableProducts.length);
+
             productsList.innerHTML = products.map(product => {
                 // Ищем название товара в списке доступных товаров
                 const productInfo = availableProducts.find(p => p.product_id === product.product_id);
                 const productName = productInfo ? productInfo.product_name : `Товар ID: ${product.product_id}`;
                 
                 // Определяем цену товара
-                let displayPrice = product.payed_sum; // Цена из чека
+                let displayPrice = 0;
                 
-                // Если цена в чеке 0, берем из меню товаров
-                if ((!displayPrice || displayPrice === "0") && productInfo && productInfo.spots) {
+                // Пробуем разные варианты получения цены
+                if (product.payed_sum && product.payed_sum !== "0") {
+                    displayPrice = product.payed_sum;
+                    console.log(`Price from payed_sum for ${product.product_id}:`, displayPrice);
+                } else if (product.product_price && product.product_price !== "0") {
+                    displayPrice = parseInt(product.product_price) * parseInt(product.num || 1);
+                    console.log(`Price from product_price for ${product.product_id}:`, displayPrice);
+                } else if (productInfo && productInfo.spots) {
                     const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
-                    if (spotPrice) {
-                        displayPrice = parseInt(spotPrice.price) * parseInt(product.num);
+                    if (spotPrice && spotPrice.price) {
+                        displayPrice = parseInt(spotPrice.price) * parseInt(product.num || 1);
+                        console.log(`Price from menu for ${product.product_id}:`, displayPrice);
                     }
                 }
+                
+                console.log(`Final price for ${product.product_id}:`, displayPrice);
                 
                 return `
                     <div class="product-item" data-product-id="${product.product_id}">
@@ -499,7 +511,7 @@
                             <input 
                                 type="number" 
                                 class="quantity-input" 
-                                value="${product.num}" 
+                                value="${product.num || 1}" 
                                 min="1"
                                 onchange="updateProductQuantity('${product.product_id}', this.value)"
                             >
@@ -836,6 +848,7 @@
                 
                 // Сначала только чек
                 const transactionResponse = await apiRequest(`dash.getTransaction`);
+                console.log('Transaction loaded:', transactionResponse);
                 
                 if (!transactionResponse.response || transactionResponse.response.length === 0) {
                     throw new Error('Чек не найден');
@@ -845,32 +858,30 @@
                 
                 // Отображаем основную информацию сразу
                 displayCheckInfo(currentTransaction);
-                displayProducts(currentTransaction.products || []);
                 
                 // Показываем интерфейс
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('productsSection').style.display = 'block';
                 document.getElementById('actions').style.display = 'block';
                 
-                // Загружаем товары в фоне для dropdown
-                document.getElementById('loading').innerHTML = `
-                    <div class="spinner"></div>
-                    <p>Загружаем список товаров...</p>
-                `;
-                document.getElementById('loading').style.display = 'block';
+                // Показываем товары без цен пока
+                displayProducts(currentTransaction.products || []);
                 
+                // Загружаем товары для получения цен
                 try {
+                    console.log('Loading products for prices...');
                     const productsResponse = await apiRequest(`menu.getProducts`);
+                    console.log('Products loaded:', productsResponse);
+                    
                     availableProducts = productsResponse.response || [];
                     
-                    // Обновляем отображение с правильными ценами
+                    // Перерисовываем товары с правильными ценами
                     displayProducts(currentTransaction.products || []);
                     loadProductsSelect(availableProducts);
                     
-                    document.getElementById('loading').style.display = 'none';
+                    console.log('Products updated with prices');
                 } catch (error) {
                     console.warn('Ошибка загрузки товаров:', error);
-                    document.getElementById('loading').style.display = 'none';
                     // Продолжаем работу без списка товаров
                 }
                 
