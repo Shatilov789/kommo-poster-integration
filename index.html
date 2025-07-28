@@ -1,19 +1,4 @@
-// Обновление названий товаров (без перерисовки)
-        function updateProductNames() {
-            const productItems = document.querySelectorAll('.product-item');
-            
-            productItems.forEach(item => {
-                const productId = item.getAttribute('data-product-id');
-                const productInfo = availableProducts.find(p => p.product_id === productId);
-                
-                if (productInfo) {
-                    const nameElement = item.querySelector('.product-name');
-                    if (nameElement && nameElement.textContent.startsWith('Товар ID:')) {
-                        nameElement.textContent = productInfo.product_name;
-                    }
-                }
-            });
-        }        // Инициализация приложения
+// Инициализация приложения
         async function init() {
             try {
                 const params = getUrlParams();
@@ -866,7 +851,7 @@
                     <p>Загружаем чек ${params.transaction_id}...</p>
                 `;
                 
-                // Сначала только чек - БЫСТРО
+                // Сначала только чек
                 const transactionResponse = await apiRequest(`dash.getTransaction`);
                 console.log('Transaction loaded:', transactionResponse);
                 
@@ -879,30 +864,30 @@
                 // Отображаем основную информацию сразу
                 displayCheckInfo(currentTransaction);
                 
-                // Показываем товары БЕЗ названий - но интерфейс уже работает
-                displayProducts(currentTransaction.products || []);
-                
-                // Показываем интерфейс СРАЗУ - не ждем товары
+                // Показываем интерфейс
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('productsSection').style.display = 'block';
                 document.getElementById('actions').style.display = 'block';
                 
-                // Загружаем товары В ФОНЕ для названий
+                // Показываем товары без цен пока
+                displayProducts(currentTransaction.products || []);
+                
+                // Загружаем товары для получения цен
                 try {
-                    console.log('Loading products in background...');
+                    console.log('Loading products for prices...');
                     const productsResponse = await apiRequest(`menu.getProducts`);
-                    console.log('Products loaded, updating names...');
+                    console.log('Products loaded:', productsResponse);
                     
                     availableProducts = productsResponse.response || [];
                     
-                    // Обновляем ТОЛЬКО названия товаров, не перерисовываем всё
-                    updateProductNames();
+                    // Перерисовываем товары с правильными ценами
+                    displayProducts(currentTransaction.products || []);
                     loadProductsSelect(availableProducts);
                     
-                    console.log('Product names updated');
+                    console.log('Products updated with prices');
                 } catch (error) {
                     console.warn('Ошибка загрузки товаров:', error);
-                    // Интерфейс уже работает, просто без названий
+                    // Продолжаем работу без списка товаров
                 }
                 
                 // Отображаем данные
