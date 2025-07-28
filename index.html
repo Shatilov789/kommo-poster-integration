@@ -478,6 +478,17 @@
                 const productInfo = availableProducts.find(p => p.product_id === product.product_id);
                 const productName = productInfo ? productInfo.product_name : `Товар ID: ${product.product_id}`;
                 
+                // Определяем цену товара
+                let displayPrice = product.payed_sum; // Цена из чека
+                
+                // Если цена в чеке 0, берем из меню товаров
+                if ((!displayPrice || displayPrice === "0") && productInfo && productInfo.spots) {
+                    const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
+                    if (spotPrice) {
+                        displayPrice = parseInt(spotPrice.price) * parseInt(product.num);
+                    }
+                }
+                
                 return `
                     <div class="product-item" data-product-id="${product.product_id}">
                         <div class="product-info">
@@ -492,7 +503,7 @@
                                 min="1"
                                 onchange="updateProductQuantity('${product.product_id}', this.value)"
                             >
-                            <div class="price">${formatPrice(product.payed_sum)}</div>
+                            <div class="price">${formatPrice(displayPrice)}</div>
                             <button 
                                 class="btn btn-danger" 
                                 onclick="removeProduct('${product.product_id}')"
@@ -815,33 +826,53 @@
                 
                 console.log('Загрузка чека:', params.transaction_id);
                 
-                // Показываем детали загрузки
+                // Загружаем только чек сначала, товары - по необходимости
+                console.log('Загружаем чек:', params.transaction_id);
+                
                 document.getElementById('loading').innerHTML = `
                     <div class="spinner"></div>
                     <p>Загружаем чек ${params.transaction_id}...</p>
                 `;
                 
-                // Загружаем данные параллельно для ускорения
-                const [transactionResponse, productsResponse] = await Promise.all([
-                    apiRequest(`dash.getTransaction`),
-                    apiRequest(`menu.getProducts`)
-                ]);
-                
-                console.log('Transaction response:', transactionResponse);
-                console.log('Products response:', productsResponse);
+                // Сначала только чек
+                const transactionResponse = await apiRequest(`dash.getTransaction`);
                 
                 if (!transactionResponse.response || transactionResponse.response.length === 0) {
                     throw new Error('Чек не найден');
                 }
                 
                 currentTransaction = transactionResponse.response[0];
-                availableProducts = productsResponse.response || [];
                 
-                // Показываем прогресс
+                // Отображаем основную информацию сразу
+                displayCheckInfo(currentTransaction);
+                displayProducts(currentTransaction.products || []);
+                
+                // Показываем интерфейс
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('productsSection').style.display = 'block';
+                document.getElementById('actions').style.display = 'block';
+                
+                // Загружаем товары в фоне для dropdown
                 document.getElementById('loading').innerHTML = `
                     <div class="spinner"></div>
-                    <p>Обрабатываем данные...</p>
+                    <p>Загружаем список товаров...</p>
                 `;
+                document.getElementById('loading').style.display = 'block';
+                
+                try {
+                    const productsResponse = await apiRequest(`menu.getProducts`);
+                    availableProducts = productsResponse.response || [];
+                    
+                    // Обновляем отображение с правильными ценами
+                    displayProducts(currentTransaction.products || []);
+                    loadProductsSelect(availableProducts);
+                    
+                    document.getElementById('loading').style.display = 'none';
+                } catch (error) {
+                    console.warn('Ошибка загрузки товаров:', error);
+                    document.getElementById('loading').style.display = 'none';
+                    // Продолжаем работу без списка товаров
+                }
                 
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
