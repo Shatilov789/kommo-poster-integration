@@ -345,7 +345,7 @@
 
     <script>
         // Конфигурация
-        const API_BASE = 'https://joinposter.com/api';
+        const API_BASE = 'http://localhost:8080/api-proxy.php';
         const API_TOKEN = '067911:2866713790d620e5e99b0f4bdb88c212';
         const SPOT_ID = 1;
         const SPOT_TABLET_ID = 1;
@@ -366,9 +366,9 @@
             };
         }
 
-        // API запросы
+        // API запросы через proxy
         async function apiRequest(endpoint, method = 'GET', data = null) {
-            let url = `${API_BASE}/${endpoint}?token=${API_TOKEN}`;
+            let url = `${API_BASE}?endpoint=${endpoint}`;
             
             // Для dash.getTransaction добавляем параметры
             if (endpoint === 'dash.getTransaction') {
@@ -796,9 +796,12 @@
                 
                 console.log('Загрузка чека:', params.transaction_id);
                 
-                // Загружаем реальные данные через API
-                const transactionResponse = await apiRequest(`dash.getTransaction`, 'GET');
+                // Загружаем реальные данные через API proxy
+                const transactionResponse = await apiRequest(`dash.getTransaction`);
                 const productsResponse = await apiRequest(`menu.getProducts`);
+                
+                console.log('Transaction response:', transactionResponse);
+                console.log('Products response:', productsResponse);
                 
                 if (!transactionResponse.response || transactionResponse.response.length === 0) {
                     throw new Error('Чек не найден');
