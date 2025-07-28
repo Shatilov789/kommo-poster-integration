@@ -297,12 +297,12 @@
             <div class="products-list" id="productsList">
                 <!-- Товары будут загружены здесь -->
             </div>
-
+            
             <!-- Итоговая сумма -->
             <div style="padding: 15px 20px; border-top: 1px solid #e9ecef; text-align: right; background: #f8f9fa;">
                 <strong>Итого: <span id="totalSum" class="price"></span></strong>
             </div>
-
+            
             <!-- Добавление нового товара -->
             <div class="add-product">
                 <h3>Добавить товар</h3>
@@ -359,7 +359,7 @@
         // API запросы
         async function apiRequest(endpoint, method = 'GET', data = null) {
             const url = `${API_BASE}/${endpoint}?token=${API_TOKEN}`;
-
+            
             const options = {
                 method,
                 headers: {
@@ -374,11 +374,11 @@
             try {
                 const response = await fetch(url, options);
                 const result = await response.json();
-
+                
                 if (!response.ok) {
                     throw new Error(result.error || 'Ошибка API');
                 }
-
+                
                 return result;
             } catch (error) {
                 console.error('API Error:', error);
@@ -398,7 +398,7 @@
 
         // Получение доступных товаров
         async function getAvailableProducts() {
-            return await apiRequest(`storage.getStorageLeftovers?type=2`);
+            return await apiRequest(`menu.getProducts`);
         }
 
         // Форматирование суммы (из копеек в рубли)
@@ -415,7 +415,7 @@
         function displayCheckInfo(transaction) {
             const checkInfo = document.getElementById('checkInfo');
             const totalSum = document.getElementById('totalSum');
-
+            
             checkInfo.innerHTML = `
                 <div class="info-item">
                     <label>Номер чека</label>
@@ -431,14 +431,14 @@
                 </div>
 
             `;
-
+            
             totalSum.textContent = formatPrice(transaction.sum);
         }
 
         // Отображение товаров в чеке
         function displayProducts(products) {
             const productsList = document.getElementById('productsList');
-
+            
             if (!products || products.length === 0) {
                 productsList.innerHTML = '<div class="product-item">Товары не найдены</div>';
                 return;
@@ -451,16 +451,16 @@
                         <div class="product-id">Модификация: ${product.modification_id || 'Нет'}</div>
                     </div>
                     <div class="product-controls">
-                        <input
-                            type="number"
-                            class="quantity-input"
-                            value="${product.num}"
+                        <input 
+                            type="number" 
+                            class="quantity-input" 
+                            value="${product.num}" 
                             min="1"
                             onchange="updateProductQuantity('${product.product_id}', this.value)"
                         >
                         <div class="price">${formatPrice(product.payed_sum)}</div>
-                        <button
-                            class="btn btn-danger"
+                        <button 
+                            class="btn btn-danger" 
                             onclick="removeProduct('${product.product_id}')"
                         >
                             Удалить
@@ -473,14 +473,18 @@
         // Загрузка доступных товаров в select
         function loadProductsSelect(products) {
             const select = document.getElementById('productSelect');
-
+            
             select.innerHTML = '<option value="">Выберите товар...</option>';
-
+            
             products.forEach(product => {
                 if (product.hidden === '0') { // Только не скрытые товары
+                    // Находим цену для нашего заведения (spot_id = 1)
+                    const spotPrice = product.spots ? product.spots.find(spot => spot.spot_id === '1') : null;
+                    const price = spotPrice ? formatPrice(spotPrice.price) : 'Цена не указана';
+                    
                     select.innerHTML += `
-                        <option value="${product.ingredient_id}">
-                            ${product.ingredient_name} (остаток: ${product.ingredient_left})
+                        <option value="${product.product_id}" data-price="${spotPrice ? spotPrice.price : 0}">
+                            ${product.product_name} - ${price}
                         </option>
                     `;
                 }
@@ -490,72 +494,219 @@
         // Изменение количества товара
         function updateProductQuantity(productId, newQuantity) {
             console.log(`Изменение количества товара ${productId} на ${newQuantity}`);
-
+            
             // Добавляем в список изменений
-            changes.modified.push({
-                product_id: productId,
-                quantity: parseInt(newQuantity)
-            });
+            const existingChange = changes.modified.find(item => item.product_id === productId);
+            if (existingChange) {
+                existingChange.quantity = parseInt(newQuantity);
+            } else {
+                changes.modified.push({
+                    product_id: productId,
+                    quantity: parseInt(newQuantity)
+                });
+            }
+            
+            // Обновляем цену товара в интерфейсе
+            updateProductPrice(productId, newQuantity);
+            
+            // Обновляем итоговую сумму
+            updateTotalSum();
+        }
+        
+        // Обновление цены товара в интерфейсе
+        function updateProductPrice(productId, quantity) {
+            const productElement = document.querySelector(`[data-product-id="${productId}"]`);
+            if (!productElement) return;
+            
+            const priceElement = productElement.querySelector('.price');
+            if (!priceElement) return;
+            
+            // Проверяем - это новый товар или существующий
+            const isNewProduct = changes.added.find(item => item.product_id === productId);
+            
+            if (isNewProduct) {
+                // Для нового товара - берем цену из меню
+                const productInfo = availableProducts.find(p => p.product_id === productId);
+                if (productInfo && productInfo.spots) {
+                    const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
+                    if (spotPrice) {
+                        const totalPrice = parseInt(spotPrice.price) * parseInt(quantity);
+                        priceElement.textContent = formatPrice(totalPrice);
+                        
+                        // Обновляем количество в массиве изменений
+                        isNewProduct.quantity = parseInt(quantity);
+                    }
+                }
+            } else {
+                // Для существующего товара - берем цену из чека
+                const originalProduct = currentTransaction.products.find(p => p.product_id === productId);
+                if (originalProduct) {
+                    const pricePerUnit = parseInt(originalProduct.product_price);
+                    const totalPrice = pricePerUnit * parseInt(quantity);
+                    priceElement.textContent = formatPrice(totalPrice);
+                }
+            }
         }
 
         // Удаление товара
         function removeProduct(productId) {
             console.log(`Удаление товара ${productId}`);
-
+            
             // Добавляем в список удаленных
             changes.removed.push({
                 product_id: productId
             });
-
+            
             // Удаляем из интерфейса
             const productElement = document.querySelector(`[data-product-id="${productId}"]`);
             if (productElement) {
                 productElement.style.opacity = '0.5';
                 productElement.style.textDecoration = 'line-through';
             }
+            
+            // Обновляем итоговую сумму
+            updateTotalSum();
         }
 
         // Добавление нового товара
         function addProduct() {
             const select = document.getElementById('productSelect');
             const quantityInput = document.getElementById('productQuantity');
-
+            
             const productId = select.value;
             const quantity = parseInt(quantityInput.value);
-
+            
             if (!productId) {
                 alert('Выберите товар');
                 return;
             }
-
+            
             if (quantity < 1) {
                 alert('Количество должно быть больше 0');
                 return;
             }
-
+            
             console.log(`Добавление товара ${productId}, количество: ${quantity}`);
-
+            
+            // Находим информацию о товаре
+            const productInfo = availableProducts.find(p => p.product_id === productId);
+            if (!productInfo) {
+                alert('Товар не найден');
+                return;
+            }
+            
+            // Получаем цену товара
+            const spotPrice = productInfo.spots ? productInfo.spots.find(spot => spot.spot_id === '1') : null;
+            const price = spotPrice ? spotPrice.price : 0;
+            const totalPrice = price * quantity;
+            
             // Добавляем в список новых товаров
             changes.added.push({
                 product_id: productId,
                 quantity: quantity
             });
-
+            
+            // Сразу добавляем в интерфейс (временно)
+            const productsList = document.getElementById('productsList');
+            const newProductHtml = `
+                <div class="product-item" data-product-id="${productId}" style="background: #e8f5e8; border-left: 4px solid #28a745;">
+                    <div class="product-info">
+                        <div class="product-name">${productInfo.product_name} <span style="color: #28a745; font-size: 12px;">(новый)</span></div>
+                        <div class="product-id">ID: ${productId}</div>
+                    </div>
+                    <div class="product-controls">
+                        <input 
+                            type="number" 
+                            class="quantity-input" 
+                            value="${quantity}" 
+                            min="1"
+                            onchange="updateProductQuantity('${productId}', this.value)"
+                        >
+                        <div class="price">${formatPrice(totalPrice)}</div>
+                        <button 
+                            class="btn btn-danger" 
+                            onclick="removeNewProduct('${productId}')"
+                        >
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            productsList.insertAdjacentHTML('beforeend', newProductHtml);
+            
             // Сбрасываем форму
             select.value = '';
             quantityInput.value = 1;
-
-            alert('Товар добавлен в список изменений');
+            
+            // Обновляем итоговую сумму (пока без цены нового товара)
+            updateTotalSum();
+        }
+        
+        // Удаление нового товара (до сохранения)
+        function removeNewProduct(productId) {
+            // Удаляем из списка добавленных
+            changes.added = changes.added.filter(item => item.product_id !== productId);
+            
+            // Удаляем из интерфейса
+            const productElement = document.querySelector(`[data-product-id="${productId}"]`);
+            if (productElement) {
+                productElement.remove();
+            }
+            
+            // Обновляем итоговую сумму
+            updateTotalSum();
+            
+            console.log(`Удален новый товар ${productId} из списка`);
+        }
+        
+        // Обновление итоговой суммы
+        function updateTotalSum() {
+            if (!currentTransaction) return;
+            
+            let total = parseInt(currentTransaction.sum); // Исходная сумма чека
+            
+            // Добавляем цены новых товаров
+            changes.added.forEach(item => {
+                const productInfo = availableProducts.find(p => p.product_id === item.product_id);
+                if (productInfo && productInfo.spots) {
+                    const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
+                    if (spotPrice) {
+                        total += parseInt(spotPrice.price) * item.quantity;
+                    }
+                }
+            });
+            
+            // Учитываем изменения количества существующих товаров
+            changes.modified.forEach(item => {
+                const originalProduct = currentTransaction.products.find(p => p.product_id === item.product_id);
+                if (originalProduct) {
+                    const originalTotal = parseInt(originalProduct.payed_sum);
+                    const pricePerUnit = parseInt(originalProduct.product_price);
+                    const newTotal = pricePerUnit * item.quantity;
+                    total = total - originalTotal + newTotal;
+                }
+            });
+            
+            // Вычитаем цены удаленных товаров
+            changes.removed.forEach(item => {
+                const originalProduct = currentTransaction.products.find(p => p.product_id === item.product_id);
+                if (originalProduct) {
+                    total -= parseInt(originalProduct.payed_sum);
+                }
+            });
+            
+            document.getElementById('totalSum').textContent = formatPrice(total);
         }
 
         // Сохранение изменений
         async function saveChanges() {
             console.log('Сохранение изменений:', changes);
-
+            
             try {
                 // Здесь будут реальные API вызовы
                 // Пока показываем что происходит
-
+                
                 // Добавление новых товаров
                 for (const item of changes.added) {
                     console.log('Добавляем товар:', item);
@@ -566,7 +717,7 @@
                     //     product_id: item.product_id
                     // });
                 }
-
+                
                 // Изменение количества
                 for (const item of changes.modified) {
                     console.log('Изменяем количество:', item);
@@ -578,7 +729,7 @@
                     //     count: item.quantity
                     // });
                 }
-
+                
                 // Удаление товаров
                 for (const item of changes.removed) {
                     console.log('Удаляем товар:', item);
@@ -589,16 +740,16 @@
                     //     product_id: item.product_id
                     // });
                 }
-
+                
                 // Показываем успех
                 document.getElementById('success').style.display = 'block';
                 setTimeout(() => {
                     document.getElementById('success').style.display = 'none';
                 }, 3000);
-
+                
                 // Очищаем изменения
                 changes = { added: [], modified: [], removed: [] };
-
+                
             } catch (error) {
                 showError('Ошибка сохранения: ' + error.message);
             }
@@ -608,7 +759,7 @@
         function showError(message) {
             const errorDiv = document.getElementById('error');
             const errorMessage = document.getElementById('errorMessage');
-
+            
             errorMessage.textContent = message;
             errorDiv.style.display = 'block';
         }
@@ -617,21 +768,21 @@
         async function init() {
             try {
                 const params = getUrlParams();
-
+                
                 if (!params.transaction_id) {
                     throw new Error('Не указан номер чека');
                 }
-
+                
                 console.log('Загрузка чека:', params.transaction_id);
-
+                
                 // Пока используем тестовые данные вместо реальных API вызовов
                 // const transactionData = await getTransaction(params.transaction_id);
                 // const productsData = await getAvailableProducts();
-
+                
                 // Тестовые данные
                 const transactionData = {
                     response: [{
-                        transaction_id: "73",
+                        transaction_id: "330660",
                         date_close_date: "2018-02-17 16:10:46",
                         status: "2",
                         name: "Анна",
@@ -654,39 +805,61 @@
                         ]
                     }]
                 };
-
+                
                 const productsData = {
                     response: [
                         {
-                            ingredient_id: "1901",
-                            ingredient_name: "22Р-55 - саджанець",
-                            ingredient_left: "10.0000000",
-                            ingredients_type: "2",
-                            hidden: "0"
+                            "product_id": "1889",
+                            "product_name": "22Р-55 - саджанець",
+                            "hidden": "0",
+                            "spots": [
+                                {
+                                    "spot_id": "1",
+                                    "price": "30000",
+                                    "visible": "1"
+                                }
+                            ]
                         },
                         {
-                            ingredient_id: "1902",
-                            ingredient_name: "22Р-55 - черенок",
-                            ingredient_left: "5.0000000",
-                            ingredients_type: "2",
-                            hidden: "0"
+                            "product_id": "1890",
+                            "product_name": "22Р-55 - черенок",
+                            "hidden": "0",
+                            "spots": [
+                                {
+                                    "spot_id": "1",
+                                    "price": "15000",
+                                    "visible": "1"
+                                }
+                            ]
+                        },
+                        {
+                            "product_id": "3720",
+                            "product_name": "88888",
+                            "hidden": "0",
+                            "spots": [
+                                {
+                                    "spot_id": "1",
+                                    "price": "0",
+                                    "visible": "1"
+                                }
+                            ]
                         }
                     ]
                 };
-
+                
                 currentTransaction = transactionData.response[0];
                 availableProducts = productsData.response;
-
+                
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
                 displayProducts(currentTransaction.products);
                 loadProductsSelect(availableProducts);
-
+                
                 // Показываем интерфейс
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('productsSection').style.display = 'block';
                 document.getElementById('actions').style.display = 'block';
-
+                
             } catch (error) {
                 console.error('Ошибка инициализации:', error);
                 document.getElementById('loading').style.display = 'none';
