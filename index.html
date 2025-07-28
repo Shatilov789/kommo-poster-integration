@@ -1,4 +1,14 @@
-<!DOCTYPE html>
+// Инициализация приложения
+        async function init() {
+            try {
+                const params = getUrlParams();
+                
+                if (!params.transaction_id) {
+                    throw new Error('Не указан номер чека');
+                }
+                
+                console.log('Загрузка чека:', params.transaction_id);
+                <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -336,7 +346,7 @@
     <script>
         // Конфигурация
         const API_BASE = 'https://joinposter.com/api';
-        const API_TOKEN = '067911:2866713790d620e5e99b0f4bdb88c212'; // Замените на реальный токен
+        const API_TOKEN = '067911:2866713790d620e5e99b0f4bdb88c212';
         const SPOT_ID = 1;
         const SPOT_TABLET_ID = 1;
 
@@ -358,7 +368,13 @@
 
         // API запросы
         async function apiRequest(endpoint, method = 'GET', data = null) {
-            const url = `${API_BASE}/${endpoint}?token=${API_TOKEN}`;
+            let url = `${API_BASE}/${endpoint}?token=${API_TOKEN}`;
+            
+            // Для dash.getTransaction добавляем параметры
+            if (endpoint === 'dash.getTransaction') {
+                const params = getUrlParams();
+                url += `&transaction_id=${params.transaction_id}&include_products=true&include_history=false&include_delivery=false`;
+            }
             
             const options = {
                 method,
@@ -704,53 +720,58 @@
             console.log('Сохранение изменений:', changes);
             
             try {
-                // Здесь будут реальные API вызовы
-                // Пока показываем что происходит
+                const params = getUrlParams();
                 
                 // Добавление новых товаров
                 for (const item of changes.added) {
                     console.log('Добавляем товар:', item);
-                    // const result = await apiRequest('transactions.addTransactionProduct', 'POST', {
-                    //     spot_id: SPOT_ID,
-                    //     spot_tablet_id: SPOT_TABLET_ID,
-                    //     transaction_id: currentTransaction.transaction_id,
-                    //     product_id: item.product_id
-                    // });
+                    const result = await apiRequest('transactions.addTransactionProduct', 'POST', {
+                        spot_id: SPOT_ID,
+                        spot_tablet_id: SPOT_TABLET_ID,
+                        transaction_id: params.transaction_id,
+                        product_id: item.product_id
+                    });
+                    console.log('Результат добавления:', result);
                 }
                 
                 // Изменение количества
                 for (const item of changes.modified) {
                     console.log('Изменяем количество:', item);
-                    // const result = await apiRequest('transactions.changeTransactionProductCount', 'POST', {
-                    //     spot_id: SPOT_ID,
-                    //     spot_tablet_id: SPOT_TABLET_ID,
-                    //     transaction_id: currentTransaction.transaction_id,
-                    //     product_id: item.product_id,
-                    //     count: item.quantity
-                    // });
+                    const result = await apiRequest('transactions.changeTransactionProductCount', 'POST', {
+                        spot_id: SPOT_ID,
+                        spot_tablet_id: SPOT_TABLET_ID,
+                        transaction_id: params.transaction_id,
+                        product_id: item.product_id,
+                        count: item.quantity
+                    });
+                    console.log('Результат изменения:', result);
                 }
                 
                 // Удаление товаров
                 for (const item of changes.removed) {
                     console.log('Удаляем товар:', item);
-                    // const result = await apiRequest('transactions.removeTransactionProduct', 'POST', {
-                    //     spot_id: SPOT_ID,
-                    //     spot_tablet_id: SPOT_TABLET_ID,
-                    //     transaction_id: currentTransaction.transaction_id,
-                    //     product_id: item.product_id
-                    // });
+                    const result = await apiRequest('transactions.removeTransactionProduct', 'POST', {
+                        spot_id: SPOT_ID,
+                        spot_tablet_id: SPOT_TABLET_ID,
+                        transaction_id: params.transaction_id,
+                        product_id: item.product_id
+                    });
+                    console.log('Результат удаления:', result);
                 }
                 
                 // Показываем успех
                 document.getElementById('success').style.display = 'block';
                 setTimeout(() => {
                     document.getElementById('success').style.display = 'none';
-                }, 3000);
+                    // Перезагружаем страницу для отображения актуальных данных
+                    location.reload();
+                }, 2000);
                 
                 // Очищаем изменения
                 changes = { added: [], modified: [], removed: [] };
                 
             } catch (error) {
+                console.error('Ошибка сохранения:', error);
                 showError('Ошибка сохранения: ' + error.message);
             }
         }
@@ -775,80 +796,16 @@
                 
                 console.log('Загрузка чека:', params.transaction_id);
                 
-                // Пока используем тестовые данные вместо реальных API вызовов
-                // const transactionData = await getTransaction(params.transaction_id);
-                // const productsData = await getAvailableProducts();
+                // Загружаем реальные данные через API
+                const transactionResponse = await apiRequest(`dash.getTransaction`, 'GET');
+                const productsResponse = await apiRequest(`menu.getProducts`);
                 
-                // Тестовые данные
-                const transactionData = {
-                    response: [{
-                        transaction_id: "330660",
-                        date_close_date: "2018-02-17 16:10:46",
-                        status: "2",
-                        name: "Анна",
-                        sum: "2750",
-                        products: [
-                            {
-                                product_id: "162",
-                                modification_id: "0",
-                                num: "1",
-                                product_price: "1050",
-                                payed_sum: "1050"
-                            },
-                            {
-                                product_id: "161",
-                                modification_id: "0",
-                                num: "1",
-                                product_price: "1700",
-                                payed_sum: "1700"
-                            }
-                        ]
-                    }]
-                };
+                if (!transactionResponse.response || transactionResponse.response.length === 0) {
+                    throw new Error('Чек не найден');
+                }
                 
-                const productsData = {
-                    response: [
-                        {
-                            "product_id": "1889",
-                            "product_name": "22Р-55 - саджанець",
-                            "hidden": "0",
-                            "spots": [
-                                {
-                                    "spot_id": "1",
-                                    "price": "30000",
-                                    "visible": "1"
-                                }
-                            ]
-                        },
-                        {
-                            "product_id": "1890",
-                            "product_name": "22Р-55 - черенок",
-                            "hidden": "0",
-                            "spots": [
-                                {
-                                    "spot_id": "1",
-                                    "price": "15000",
-                                    "visible": "1"
-                                }
-                            ]
-                        },
-                        {
-                            "product_id": "3720",
-                            "product_name": "88888",
-                            "hidden": "0",
-                            "spots": [
-                                {
-                                    "spot_id": "1",
-                                    "price": "0",
-                                    "visible": "1"
-                                }
-                            ]
-                        }
-                    ]
-                };
-                
-                currentTransaction = transactionData.response[0];
-                availableProducts = productsData.response;
+                currentTransaction = transactionResponse.response[0];
+                availableProducts = productsResponse.response || [];
                 
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
