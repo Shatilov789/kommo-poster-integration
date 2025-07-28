@@ -376,11 +376,15 @@
                 url += `&transaction_id=${params.transaction_id}&include_products=true&include_history=false&include_delivery=false`;
             }
             
+            console.log('API Request URL:', url);
+            
             const options = {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                // Увеличиваем таймаут
+                timeout: 15000
             };
 
             if (data && method !== 'GET') {
@@ -388,17 +392,26 @@
             }
 
             try {
+                const startTime = Date.now();
                 const response = await fetch(url, options);
-                const result = await response.json();
+                const endTime = Date.now();
+                
+                console.log(`API ${endpoint} took ${endTime - startTime}ms`);
                 
                 if (!response.ok) {
-                    throw new Error(result.error || 'Ошибка API');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
                 }
                 
                 return result;
             } catch (error) {
-                console.error('API Error:', error);
-                throw error;
+                console.error(`API Error for ${endpoint}:`, error);
+                throw new Error(`Ошибка API ${endpoint}: ${error.message}`);
             }
         }
 
@@ -460,30 +473,36 @@
                 return;
             }
 
-            productsList.innerHTML = products.map(product => `
-                <div class="product-item" data-product-id="${product.product_id}">
-                    <div class="product-info">
-                        <div class="product-name">Товар ID: ${product.product_id}</div>
-                        <div class="product-id">Модификация: ${product.modification_id || 'Нет'}</div>
+            productsList.innerHTML = products.map(product => {
+                // Ищем название товара в списке доступных товаров
+                const productInfo = availableProducts.find(p => p.product_id === product.product_id);
+                const productName = productInfo ? productInfo.product_name : `Товар ID: ${product.product_id}`;
+                
+                return `
+                    <div class="product-item" data-product-id="${product.product_id}">
+                        <div class="product-info">
+                            <div class="product-name">${productName}</div>
+                            <div class="product-id">ID: ${product.product_id} | Модификация: ${product.modification_id || 'Нет'}</div>
+                        </div>
+                        <div class="product-controls">
+                            <input 
+                                type="number" 
+                                class="quantity-input" 
+                                value="${product.num}" 
+                                min="1"
+                                onchange="updateProductQuantity('${product.product_id}', this.value)"
+                            >
+                            <div class="price">${formatPrice(product.payed_sum)}</div>
+                            <button 
+                                class="btn btn-danger" 
+                                onclick="removeProduct('${product.product_id}')"
+                            >
+                                Удалить
+                            </button>
+                        </div>
                     </div>
-                    <div class="product-controls">
-                        <input 
-                            type="number" 
-                            class="quantity-input" 
-                            value="${product.num}" 
-                            min="1"
-                            onchange="updateProductQuantity('${product.product_id}', this.value)"
-                        >
-                        <div class="price">${formatPrice(product.payed_sum)}</div>
-                        <button 
-                            class="btn btn-danger" 
-                            onclick="removeProduct('${product.product_id}')"
-                        >
-                            Удалить
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Загрузка доступных товаров в select
@@ -796,9 +815,17 @@
                 
                 console.log('Загрузка чека:', params.transaction_id);
                 
-                // Загружаем реальные данные через API proxy
-                const transactionResponse = await apiRequest(`dash.getTransaction`);
-                const productsResponse = await apiRequest(`menu.getProducts`);
+                // Показываем детали загрузки
+                document.getElementById('loading').innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Загружаем чек ${params.transaction_id}...</p>
+                `;
+                
+                // Загружаем данные параллельно для ускорения
+                const [transactionResponse, productsResponse] = await Promise.all([
+                    apiRequest(`dash.getTransaction`),
+                    apiRequest(`menu.getProducts`)
+                ]);
                 
                 console.log('Transaction response:', transactionResponse);
                 console.log('Products response:', productsResponse);
@@ -809,6 +836,12 @@
                 
                 currentTransaction = transactionResponse.response[0];
                 availableProducts = productsResponse.response || [];
+                
+                // Показываем прогресс
+                document.getElementById('loading').innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Обрабатываем данные...</p>
+                `;
                 
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
