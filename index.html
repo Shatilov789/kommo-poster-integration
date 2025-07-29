@@ -151,87 +151,278 @@
     <script>
         console.log('🎯 Загрузка редактора чеков');
         
-        // Получение параметров
+        // Конфигурация
+        const API_BASE = 'http://localhost:8080/api-proxy.php';
         const urlParams = new URLSearchParams(window.location.search);
         const transactionId = urlParams.get('transaction_id') || '67';
         
+        let transaction = null;
+        let changes = { added: [], modified: [], removed: [] };
+        
         console.log('Transaction ID:', transactionId);
         
-        // Обновляем заголовок
-        document.getElementById('checkInfo').innerHTML = `
-            <strong>Чек №${transactionId}</strong> | 
-            <span style="color: #28a745;">Тестовый режим</span>
-        `;
-
+        // Форматирование цены (копейки -> гривны)
+        function formatPrice(kopecks) {
+            return (parseInt(kopecks) / 100).toFixed(2) + ' ₴';
+        }
+        
+        // API запрос (прямо к Poster API для тестирования)
+        async function apiRequest(endpoint, params = {}) {
+            try {
+                // Временно используем прямой запрос к Poster API
+                const url = new URL('https://joinposter.com/api/' + endpoint);
+                url.searchParams.set('token', '067911:2866713790d620e5e99b0f4bdb88c212');
+                Object.keys(params).forEach(key => {
+                    url.searchParams.set(key, params[key]);
+                });
+                
+                console.log('🌐 API запрос:', url.toString());
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Ответ получен:', data);
+                return data;
+                
+            } catch (error) {
+                console.error('❌ Ошибка API:', error);
+                
+                // Если CORS не работает, показываем fallback данные
+                if (error.message.includes('CORS') || error.name === 'TypeError') {
+                    console.log('🔄 CORS заблокирован, используем тестовые данные');
+                    return getFallbackData();
+                }
+                
+                throw error;
+            }
+        }
+        
+        // Fallback данные (на случай CORS блокировки)
+        function getFallbackData() {
+            return {
+                "response": [
+                    {
+                        "transaction_id": "67",
+                        "date_close_date": "2025-07-24 22:28:41",
+                        "status": "1",
+                        "sum": "60000",
+                        "products": [
+                            {
+                                "product_id": "2328",
+                                "num": "1.0000000",
+                                "product_price": "10000"
+                            },
+                            {
+                                "product_id": "2330", 
+                                "num": "1.0000000",
+                                "product_price": "10000"
+                            },
+                            {
+                                "product_id": "2332",
+                                "num": "1.0000000", 
+                                "product_price": "10000"
+                            },
+                            {
+                                "product_id": "2326",
+                                "num": "2.0000000",
+                                "product_price": "20000"
+                            },
+                            {
+                                "product_id": "2324",
+                                "num": "1.0000000",
+                                "product_price": "10000"
+                            }
+                        ]
+                    }
+                ]
+            };
+        }
+        
+        // Загрузка данных чека
+        async function loadTransaction() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('checkInfo').innerHTML = '<strong>Загрузка чека №' + transactionId + '...</strong>';
+                
+                // Получаем данные чека
+                const data = await apiRequest('dash.getTransaction', {
+                    transaction_id: transactionId,
+                    include_products: 'true'
+                });
+                
+                if (!data.response || !data.response[0]) {
+                    throw new Error('Чек не найден');
+                }
+                
+                transaction = data.response[0];
+                console.log('📋 Чек загружен:', transaction);
+                
+                // Обновляем интерфейс
+                displayTransaction();
+                
+            } catch (error) {
+                console.error('❌ Ошибка загрузки:', error);
+                document.getElementById('error').textContent = 'Ошибка: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        // Отображение данных чека
+        function displayTransaction() {
+            if (!transaction) return;
+            
+            // Заголовок
+            const status = transaction.status === '1' ? 'Открыт' : 'Закрыт';
+            const statusColor = transaction.status === '1' ? '#ffc107' : '#28a745';
+            
+            document.getElementById('checkInfo').innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>Чек №${transaction.transaction_id}</strong> | 
+                        ${transaction.date_close_date || 'В обработке'} |
+                        <span style="color: ${statusColor};">Статус: ${status}</span>
+                    </div>
+                    <div style="color: #28a745; font-weight: 600; font-size: 18px;">
+                        ${formatPrice(transaction.sum)}
+                    </div>
+                </div>
+            `;
+            
+            // Товары
+            const products = transaction.products || [];
+            if (products.length === 0) {
+                document.getElementById('productsList').innerHTML = 
+                    '<div class="product">В чеке нет товаров</div>';
+                return;
+            }
+            
+            let productsHtml = '';
+            products.forEach(product => {
+                // Используем product_price как общую цену за все количество
+                const totalPrice = product.product_price;
+                const quantity = parseFloat(product.num);
+                const unitPrice = Math.round(totalPrice / quantity); // Цена за единицу
+                
+                productsHtml += `
+                    <div class="product" data-id="${product.product_id}">
+                        <div class="product-name">
+                            <div>Товар ID: ${product.product_id}</div>
+                            <small style="color: #666;">
+                                ${formatPrice(unitPrice)} за шт. × ${quantity} = ${formatPrice(totalPrice)}
+                            </small>
+                        </div>
+                        <input type="number" class="quantity" value="${quantity}" min="1" step="1"
+                               onchange="updateQuantity('${product.product_id}', this.value)">
+                        <div class="price">${formatPrice(totalPrice)}</div>
+                        <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">×</button>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('productsList').innerHTML = productsHtml;
+            document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
+        }
+        
+        // Изменение количества
+        function updateQuantity(productId, newQuantity) {
+            console.log('📝 Изменение количества:', productId, newQuantity);
+            
+            const existing = changes.modified.find(item => item.product_id === productId);
+            if (existing) {
+                existing.quantity = parseInt(newQuantity);
+            } else {
+                changes.modified.push({ product_id: productId, quantity: parseInt(newQuantity) });
+            }
+            
+            updateChangesIndicator();
+        }
+        
+        // Удаление товара
+        function removeProduct(productId) {
+            console.log('❌ Удаление товара:', productId);
+            
+            changes.removed.push({ product_id: productId });
+            
+            const element = document.querySelector(`[data-id="${productId}"]`);
+            if (element) {
+                element.style.opacity = '0.5';
+                element.style.textDecoration = 'line-through';
+                const btn = element.querySelector('.btn-danger');
+                if (btn) {
+                    btn.textContent = '✓';
+                    btn.disabled = true;
+                }
+            }
+            
+            updateChangesIndicator();
+        }
+        
+        // Обновление индикатора изменений
+        function updateChangesIndicator() {
+            const total = changes.added.length + changes.modified.length + changes.removed.length;
+            console.log('🔄 Изменений:', total, changes);
+            
+            if (total > 0) {
+                document.getElementById('success').textContent = 
+                    `Изменений: ${total} (добавлено: ${changes.added.length}, изменено: ${changes.modified.length}, удалено: ${changes.removed.length})`;
+                document.getElementById('success').style.display = 'block';
+            } else {
+                document.getElementById('success').style.display = 'none';
+            }
+        }
+        
         // Тестовые функции
         function testFunction() {
-            alert('Кнопка "Добавить" работает!');
-            console.log('Add button clicked');
+            alert('Функция добавления товара (пока тестовая)');
         }
-
+        
         function testSave() {
-            document.getElementById('success').textContent = 'Тест: Изменения сохранены!';
-            document.getElementById('success').style.display = 'block';
+            console.log('💾 Сохранение изменений:', changes);
+            
+            if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
+                alert('Нет изменений для сохранения');
+                return;
+            }
+            
+            alert('Изменения будут сохранены:\n' + JSON.stringify(changes, null, 2));
             
             // Уведомляем родительское окно
             if (window.parent !== window) {
                 window.parent.postMessage({
                     type: 'poster-check-saved',
-                    transactionId: transactionId
+                    transactionId: transactionId,
+                    changes: changes
                 }, '*');
             }
-            
-            setTimeout(() => {
-                document.getElementById('success').style.display = 'none';
-            }, 3000);
         }
-
+        
         function testRefresh() {
             location.reload();
         }
-
-        // Имитируем загрузку данных
-        setTimeout(() => {
-            document.getElementById('productsList').innerHTML = `
-                <div class="product">
-                    <div class="product-name">
-                        <div>Тестовый товар #1</div>
-                        <small style="color: #666;">ID: 2328</small>
-                    </div>
-                    <input type="number" class="quantity" value="1" onchange="console.log('Quantity changed:', this.value)">
-                    <div class="price">100.00 ₴</div>
-                    <button class="btn btn-danger" onclick="this.textContent='✓'; this.disabled=true;">×</button>
-                </div>
-                <div class="product">
-                    <div class="product-name">
-                        <div>Тестовый товар #2</div>
-                        <small style="color: #666;">ID: 2330</small>
-                    </div>
-                    <input type="number" class="quantity" value="2" onchange="console.log('Quantity changed:', this.value)">
-                    <div class="price">200.00 ₴</div>
-                    <button class="btn btn-danger" onclick="this.textContent='✓'; this.disabled=true;">×</button>
-                </div>
-            `;
-            
-            document.getElementById('productSelect').innerHTML = `
-                <option value="">Выберите товар...</option>
-                <option value="2326">Тестовый товар #3 - 150.00 ₴</option>
-                <option value="2324">Тестовый товар #4 - 250.00 ₴</option>
-            `;
-            
-            document.getElementById('totalSum').textContent = '300.00 ₴';
-            
-            console.log('✅ Тестовые данные загружены');
-        }, 1000);
-
+        
         // Обработка ошибок
         window.addEventListener('error', function(event) {
             console.error('Ошибка:', event.error);
-            document.getElementById('error').textContent = 'Ошибка: ' + event.error.message;
+            document.getElementById('error').textContent = 'JavaScript ошибка: ' + event.error.message;
             document.getElementById('error').style.display = 'block';
         });
-
-        console.log('🚀 Редактор готов к работе');
+        
+        // Запуск при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM загружен, начинаем загрузку данных');
+            loadTransaction();
+        });
+        
+        console.log('📁 Скрипт инициализирован');
     </script>
 </body>
 </html>
