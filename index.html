@@ -1,495 +1,163 @@
-// Обновление названий товаров (без перерисовки)
-        function updateProductNames() {
-            const productItems = document.querySelectorAll('.product-item');
-            
-            productItems.forEach(item => {
-                const productId = item.getAttribute('data-product-id');
-                const productInfo = availableProducts.find(p => p.product_id === productId);
-                
-                if (productInfo) {
-                    const nameElement = item.querySelector('.product-name');
-                    if (nameElement && nameElement.textContent.startsWith('Товар ID:')) {
-                        nameElement.textContent = productInfo.product_name;
-                    }
-                }
-            });
-        }        let isInitialized = false;
-
-        // Инициализация приложения
-        async function init() {
-            if (isInitialized) {
-                console.log('Приложение уже инициализировано');
-                return;
-            }
-            isInitialized = true;
-            try {
-                const params = getUrlParams();
-                
-                if (!params.transaction_id) {
-                    throw new Error('Не указан номер чека');
-                }
-                
-                console.log('Загрузка чека:', params.transaction_id);
-                <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Редактор чеков Poster POS</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f7fa;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 24px;
-        }
-
-        .check-info {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .info-item {
-            background: #f8f9fa;
-            padding: 12px;
-            border-radius: 8px;
-        }
-
-        .info-item label {
-            font-weight: 600;
-            color: #495057;
-            font-size: 12px;
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .info-item span {
-            font-size: 16px;
-            color: #212529;
-        }
-
-        .products-section {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-
-        .section-header {
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .section-header h2 {
-            color: #2c3e50;
-            font-size: 18px;
-        }
-
-        .products-list {
-            padding: 0;
-        }
-
-        .product-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f1f3f4;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .product-item:last-child {
-            border-bottom: none;
-        }
-
-        .product-info {
-            flex: 1;
-        }
-
-        .product-name {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .product-id {
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .product-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .quantity-input {
-            width: 70px;
-            padding: 8px;
-            border: 2px solid #e9ecef;
-            border-radius: 6px;
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .quantity-input:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-
-        .price {
-            min-width: 80px;
-            text-align: right;
-            font-weight: 600;
-            color: #28a745;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #c82333;
-        }
-
-        .btn-primary {
-            background: #007bff;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-
-        .btn-success {
-            background: #28a745;
-            color: white;
-            padding: 12px 24px;
-            font-size: 16px;
-        }
-
-        .btn-success:hover {
-            background: #218838;
-        }
-
-        .add-product {
-            padding: 20px;
-            border-top: 1px solid #e9ecef;
-            background: #f8f9fa;
-        }
-
-        .add-product h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .add-form {
-            display: flex;
-            gap: 10px;
-            align-items: end;
-        }
-
-        .form-group {
-            flex: 1;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #495057;
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e9ecef;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #007bff;
-        }
-
-        .actions {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px;
-        }
-
-        .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #007bff;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { font-family: Arial, sans-serif; margin: 0, padding: 20px; background: #f5f5f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+        .info-item { background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px; }
+        .info-item label { font-size: 12px; opacity: 0.8; display: block; }
+        .info-item span { font-size: 16px; font-weight: bold; }
+        .products { margin: 20px 0; }
+        .product { display: flex; align-items: center; gap: 15px; padding: 15px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; }
+        .product-name { flex: 1; font-weight: bold; }
+        .quantity { width: 70px; padding: 8px; text-align: center; border: 1px solid #ddd; border-radius: 4px; }
+        .price { width: 100px; text-align: right; color: #28a745; font-weight: bold; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-success { background: #28a745; color: white; padding: 15px 30px; font-size: 16px; }
+        .total { text-align: right; margin: 20px 0; font-size: 20px; font-weight: bold; color: #28a745; }
+        .loading { text-align: center; padding: 50px; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 10px 0; }
+        .add-form { display: flex; gap: 10px; align-items: end; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 5px; }
+        .form-group { flex: 1; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Заголовок и информация о чеке -->
         <div class="header">
-            <h1>Редактор чека</h1>
-            <div class="check-info" id="checkInfo">
-                <!-- Информация о чеке будет загружена здесь -->
+            <h1>Редактор чека Poster POS</h1>
+            <div id="checkInfo" class="info">
+                <!-- Информация о чеке -->
             </div>
         </div>
 
-        <!-- Загрузка -->
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
+        <div id="loading" class="loading">
             <p>Загрузка чека...</p>
         </div>
 
-        <!-- Ошибка -->
-        <div class="error" id="error" style="display: none;">
-            <p id="errorMessage"></p>
-        </div>
+        <div id="error" class="error" style="display: none;"></div>
 
-        <!-- Товары в чеке -->
-        <div class="products-section" id="productsSection" style="display: none;">
-            <div class="section-header">
-                <h2>Товары в чеке</h2>
-            </div>
-            <div class="products-list" id="productsList">
-                <!-- Товары будут загружены здесь -->
+        <div id="content" style="display: none;">
+            <div class="products">
+                <h3>Товары в чеке:</h3>
+                <div id="productsList"></div>
             </div>
             
-            <!-- Итоговая сумма -->
-            <div style="padding: 15px 20px; border-top: 1px solid #e9ecef; text-align: right; background: #f8f9fa;">
-                <strong>Итого: <span id="totalSum" class="price"></span></strong>
+            <div class="total">
+                Итого: <span id="totalSum">0.00 ₴</span>
             </div>
-            
-            <!-- Добавление нового товара -->
-            <div class="add-product">
-                <h3>Добавить товар</h3>
-                <div class="add-form">
-                    <div class="form-group">
-                        <label>Товар</label>
-                        <select class="form-control" id="productSelect">
-                            <option value="">Выберите товар...</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 0 0 100px;">
-                        <label>Количество</label>
-                        <input type="number" class="form-control" id="productQuantity" value="1" min="1">
-                    </div>
-                    <button class="btn btn-primary" onclick="addProduct()">Добавить</button>
+
+            <div class="add-form">
+                <div class="form-group">
+                    <label>Добавить товар:</label>
+                    <select class="form-control" id="productSelect">
+                        <option value="">Выберите товар...</option>
+                    </select>
                 </div>
+                <div class="form-group" style="flex: 0 0 100px;">
+                    <label>Количество:</label>
+                    <input type="number" class="form-control" id="productQuantity" value="1" min="1">
+                </div>
+                <button class="btn btn-success" onclick="addProduct()">Добавить</button>
             </div>
-        </div>
 
-        <!-- Кнопки действий -->
-        <div class="actions" id="actions" style="display: none;">
-            <button class="btn btn-success" onclick="saveChanges()">Сохранить изменения</button>
-        </div>
-
-        <!-- Успешное сохранение -->
-        <div class="success" id="success" style="display: none;">
-            <p>Изменения успешно сохранены!</p>
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-success" onclick="saveChanges()">Сохранить изменения</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // ПОЛНОЕ отключение аналитики и трекинга
-        window.gtag = function() {};
-        window.fbq = function() {};
-        window.dataLayer = [];
-        window.ga = function() {};
-        window._gaq = [];
-        window.analytics = { track: function() {} };
-        
-        // Блокируем все попытки отправки данных
-        const originalFetch = window.fetch;
-        window.fetch = function(url, options) {
-            if (typeof url === 'string' && (
-                url.includes('collect') || 
-                url.includes('gtm') || 
-                url.includes('analytics') ||
-                url.includes('facebook') ||
-                url.includes('pixel')
-            )) {
-                console.log('Заблокирован запрос к:', url);
-                return Promise.resolve(new Response('{}', { status: 200 }));
-            }
-            return originalFetch.apply(this, arguments);
-        };
-        
-        // Конфигурация
+        // БЛОКИРУЕМ ВСЮ АНАЛИТИКУ
+        (function() {
+            const block = () => Promise.resolve(new Response('{}', {status: 200}));
+            const blockProp = () => {};
+            
+            window.gtag = blockProp;
+            window.fbq = blockProp;
+            window.ga = blockProp;
+            window.dataLayer = [];
+            window._gaq = [];
+            
+            // Перехватываем fetch
+            const originalFetch = window.fetch;
+            window.fetch = function(url) {
+                if (typeof url === 'string' && (
+                    url.includes('collect') || 
+                    url.includes('gtm') || 
+                    url.includes('analytics') ||
+                    url.includes('clarity') ||
+                    url.includes('pixel') ||
+                    url.includes('facebook')
+                )) {
+                    return block();
+                }
+                return originalFetch.apply(this, arguments);
+            };
+        })();
+
         const API_BASE = 'http://localhost:8080/api-proxy.php';
-        const API_TOKEN = '067911:2866713790d620e5e99b0f4bdb88c212';
-        const SPOT_ID = 1;
-        const SPOT_TABLET_ID = 1;
+        
+        let transaction = null;
+        let products = [];
+        let changes = { added: [], modified: [], removed: [] };
 
-        let currentTransaction = null;
-        let availableProducts = [];
-        let changes = {
-            added: [],
-            modified: [],
-            removed: []
-        };
-
-        // Получение параметров из URL
-        function getUrlParams() {
+        function getTransactionId() {
             const params = new URLSearchParams(window.location.search);
-            return {
-                transaction_id: params.get('transaction_id') || '330660' // Для тестов
-            };
-        }
-        async function apiRequest(endpoint, method = 'GET', data = null) {
-            let url = `${API_BASE}?endpoint=${endpoint}`;
-            
-            // Для dash.getTransaction добавляем параметры
-            if (endpoint === 'dash.getTransaction') {
-                const params = getUrlParams();
-                url += `&transaction_id=${params.transaction_id}&include_products=true&include_history=false&include_delivery=false`;
-            }
-            
-            console.log('API Request URL:', url);
-            
-            const options = {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                // Увеличиваем таймаут
-                timeout: 15000
-            };
-
-            if (data && method !== 'GET') {
-                options.body = JSON.stringify(data);
-            }
-
-            try {
-                const startTime = Date.now();
-                const response = await fetch(url, options);
-                const endTime = Date.now();
-                
-                console.log(`API ${endpoint} took ${endTime - startTime}ms`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const result = await response.json();
-                
-                if (result.error) {
-                    throw new Error(result.error);
-                }
-                
-                return result;
-            } catch (error) {
-                console.error(`API Error for ${endpoint}:`, error);
-                throw new Error(`Ошибка API ${endpoint}: ${error.message}`);
-            }
+            return params.get('transaction_id') || '73';
         }
 
-        // Получение чека
-        async function getTransaction(transactionId) {
-            return await apiRequest(`dash.getTransaction`, 'GET', {
-                transaction_id: transactionId,
-                include_products: true,
-                include_history: false,
-                include_delivery: false
-            });
-        }
-
-        // Получение доступных товаров
-        async function getAvailableProducts() {
-            return await apiRequest(`menu.getProducts`);
-        }
-
-        // Форматирование суммы (из копеек в рубли)
         function formatPrice(kopecks) {
             return (kopecks / 100).toFixed(2) + ' ₴';
         }
 
-        // Форматирование даты
-        function formatDate(timestamp) {
-            return new Date(parseInt(timestamp)).toLocaleString('ru-RU');
+        async function loadData() {
+            try {
+                const tid = getTransactionId();
+                console.log('Загружаем чек:', tid);
+                
+                // Загружаем чек
+                const transUrl = `${API_BASE}?endpoint=dash.getTransaction&transaction_id=${tid}&include_products=true`;
+                const transResponse = await fetch(transUrl);
+                const transData = await transResponse.json();
+                
+                if (!transData.response || !transData.response[0]) {
+                    throw new Error('Чек не найден');
+                }
+                
+                transaction = transData.response[0];
+                console.log('Чек загружен');
+                
+                // Загружаем товары
+                const prodUrl = `${API_BASE}?endpoint=menu.getProducts`;
+                const prodResponse = await fetch(prodUrl);
+                const prodData = await prodResponse.json();
+                
+                products = prodData.response || [];
+                console.log('Товары загружены:', products.length);
+                
+                displayAll();
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('error').textContent = 'Ошибка загрузки: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+            }
+            
+            document.getElementById('loading').style.display = 'none';
         }
 
-        // Отображение информации о чеке
-        function displayCheckInfo(transaction) {
-            const checkInfo = document.getElementById('checkInfo');
-            const totalSum = document.getElementById('totalSum');
-            
-            checkInfo.innerHTML = `
+        function displayAll() {
+            // Информация о чеке
+            document.getElementById('checkInfo').innerHTML = `
                 <div class="info-item">
                     <label>Номер чека</label>
                     <span>${transaction.transaction_id}</span>
@@ -502,439 +170,102 @@
                     <label>Статус</label>
                     <span>${transaction.status === '2' ? 'Закрыт' : 'Открыт'}</span>
                 </div>
-
             `;
-            
-            totalSum.textContent = formatPrice(transaction.sum);
-        }
 
-        // Отображение товаров в чеке
-        function displayProducts(products) {
+            // Товары в чеке
             const productsList = document.getElementById('productsList');
-            
-            if (!products || products.length === 0) {
-                productsList.innerHTML = '<div class="product-item">Товары не найдены</div>';
-                return;
-            }
-
-            console.log('Displaying products:', products);
-            console.log('Available products for prices:', availableProducts.length);
-
-            productsList.innerHTML = products.map(product => {
-                // Ищем название товара в списке доступных товаров
-                const productInfo = availableProducts.find(p => p.product_id === product.product_id);
-                const productName = productInfo ? productInfo.product_name : `Товар ID: ${product.product_id}`;
-                
-                // Определяем цену товара
-                let displayPrice = 0;
-                
-                // Пробуем разные варианты получения цены
-                if (product.payed_sum && product.payed_sum !== "0") {
-                    displayPrice = product.payed_sum;
-                    console.log(`Price from payed_sum for ${product.product_id}:`, displayPrice);
-                } else if (product.product_price && product.product_price !== "0") {
-                    displayPrice = parseInt(product.product_price) * parseInt(product.num || 1);
-                    console.log(`Price from product_price for ${product.product_id}:`, displayPrice);
-                } else if (productInfo && productInfo.spots) {
-                    const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
-                    if (spotPrice && spotPrice.price) {
-                        displayPrice = parseInt(spotPrice.price) * parseInt(product.num || 1);
-                        console.log(`Price from menu for ${product.product_id}:`, displayPrice);
-                    }
-                }
-                
-                console.log(`Final price for ${product.product_id}:`, displayPrice);
-                
-                return `
-                    <div class="product-item" data-product-id="${product.product_id}">
-                        <div class="product-info">
-                            <div class="product-name">${productName}</div>
-                            <div class="product-id">ID: ${product.product_id} | Модификация: ${product.modification_id || 'Нет'}</div>
-                        </div>
-                        <div class="product-controls">
-                            <input 
-                                type="number" 
-                                class="quantity-input" 
-                                value="${product.num || 1}" 
-                                min="1"
-                                onchange="updateProductQuantity('${product.product_id}', this.value)"
-                            >
-                            <div class="price">${formatPrice(displayPrice)}</div>
-                            <button 
-                                class="btn btn-danger" 
-                                onclick="removeProduct('${product.product_id}')"
-                            >
-                                Удалить
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Загрузка доступных товаров в select
-        function loadProductsSelect(products) {
-            const select = document.getElementById('productSelect');
-            
-            select.innerHTML = '<option value="">Выберите товар...</option>';
-            
-            products.forEach(product => {
-                if (product.hidden === '0') { // Только не скрытые товары
-                    // Находим цену для нашего заведения (spot_id = 1)
-                    const spotPrice = product.spots ? product.spots.find(spot => spot.spot_id === '1') : null;
-                    const price = spotPrice ? formatPrice(spotPrice.price) : 'Цена не указана';
+            if (transaction.products && transaction.products.length > 0) {
+                productsList.innerHTML = transaction.products.map(product => {
+                    const productInfo = products.find(p => p.product_id === product.product_id);
+                    const name = productInfo ? productInfo.product_name : `Товар ID: ${product.product_id}`;
+                    const price = product.payed_sum || (product.product_price * product.num);
                     
-                    select.innerHTML += `
-                        <option value="${product.product_id}" data-price="${spotPrice ? spotPrice.price : 0}">
-                            ${product.product_name} - ${price}
-                        </option>
+                    return `
+                        <div class="product" data-id="${product.product_id}">
+                            <div class="product-name">${name}</div>
+                            <input type="number" class="quantity" value="${product.num}" min="1" 
+                                   onchange="updateQuantity('${product.product_id}', this.value)">
+                            <div class="price">${formatPrice(price)}</div>
+                            <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">Удалить</button>
+                        </div>
                     `;
-                }
-            });
-        }
-
-        // Изменение количества товара
-        function updateProductQuantity(productId, newQuantity) {
-            console.log(`Изменение количества товара ${productId} на ${newQuantity}`);
-            
-            // Добавляем в список изменений
-            const existingChange = changes.modified.find(item => item.product_id === productId);
-            if (existingChange) {
-                existingChange.quantity = parseInt(newQuantity);
+                }).join('');
             } else {
-                changes.modified.push({
-                    product_id: productId,
-                    quantity: parseInt(newQuantity)
-                });
+                productsList.innerHTML = '<p>Товары не найдены</p>';
             }
-            
-            // Обновляем цену товара в интерфейсе
-            updateProductPrice(productId, newQuantity);
-            
-            // Обновляем итоговую сумму
-            updateTotalSum();
-        }
-        
-        // Обновление цены товара в интерфейсе
-        function updateProductPrice(productId, quantity) {
-            const productElement = document.querySelector(`[data-product-id="${productId}"]`);
-            if (!productElement) return;
-            
-            const priceElement = productElement.querySelector('.price');
-            if (!priceElement) return;
-            
-            // Проверяем - это новый товар или существующий
-            const isNewProduct = changes.added.find(item => item.product_id === productId);
-            
-            if (isNewProduct) {
-                // Для нового товара - берем цену из меню
-                const productInfo = availableProducts.find(p => p.product_id === productId);
-                if (productInfo && productInfo.spots) {
-                    const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
-                    if (spotPrice) {
-                        const totalPrice = parseInt(spotPrice.price) * parseInt(quantity);
-                        priceElement.textContent = formatPrice(totalPrice);
-                        
-                        // Обновляем количество в массиве изменений
-                        isNewProduct.quantity = parseInt(quantity);
+
+            // Список товаров для добавления
+            const select = document.getElementById('productSelect');
+            select.innerHTML = '<option value="">Выберите товар...</option>';
+            products.forEach(product => {
+                if (product.hidden === '0' && product.spots) {
+                    const spot = product.spots.find(s => s.spot_id === '1');
+                    if (spot) {
+                        select.innerHTML += `
+                            <option value="${product.product_id}">
+                                ${product.product_name} - ${formatPrice(spot.price)}
+                            </option>
+                        `;
                     }
                 }
-            } else {
-                // Для существующего товара - берем цену из чека
-                const originalProduct = currentTransaction.products.find(p => p.product_id === productId);
-                if (originalProduct) {
-                    const pricePerUnit = parseInt(originalProduct.product_price);
-                    const totalPrice = pricePerUnit * parseInt(quantity);
-                    priceElement.textContent = formatPrice(totalPrice);
-                }
-            }
-        }
-
-        // Удаление товара
-        function removeProduct(productId) {
-            console.log(`Удаление товара ${productId}`);
-            
-            // Добавляем в список удаленных
-            changes.removed.push({
-                product_id: productId
             });
-            
-            // Удаляем из интерфейса
-            const productElement = document.querySelector(`[data-product-id="${productId}"]`);
-            if (productElement) {
-                productElement.style.opacity = '0.5';
-                productElement.style.textDecoration = 'line-through';
-            }
-            
-            // Обновляем итоговую сумму
-            updateTotalSum();
+
+            // Итоговая сумма
+            document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
+
+            // Показываем контент
+            document.getElementById('content').style.display = 'block';
+            console.log('Интерфейс отображен');
         }
 
-        // Добавление нового товара
+        function updateQuantity(productId, newQuantity) {
+            console.log('Изменение количества:', productId, newQuantity);
+            const existing = changes.modified.find(item => item.product_id === productId);
+            if (existing) {
+                existing.quantity = parseInt(newQuantity);
+            } else {
+                changes.modified.push({ product_id: productId, quantity: parseInt(newQuantity) });
+            }
+        }
+
+        function removeProduct(productId) {
+            console.log('Удаление товара:', productId);
+            changes.removed.push({ product_id: productId });
+            const element = document.querySelector(`[data-id="${productId}"]`);
+            if (element) {
+                element.style.opacity = '0.5';
+                element.style.textDecoration = 'line-through';
+            }
+        }
+
         function addProduct() {
             const select = document.getElementById('productSelect');
             const quantityInput = document.getElementById('productQuantity');
             
-            const productId = select.value;
-            const quantity = parseInt(quantityInput.value);
-            
-            if (!productId) {
+            if (!select.value) {
                 alert('Выберите товар');
                 return;
             }
             
-            if (quantity < 1) {
-                alert('Количество должно быть больше 0');
-                return;
-            }
-            
-            console.log(`Добавление товара ${productId}, количество: ${quantity}`);
-            
-            // Находим информацию о товаре
-            const productInfo = availableProducts.find(p => p.product_id === productId);
-            if (!productInfo) {
-                alert('Товар не найден');
-                return;
-            }
-            
-            // Получаем цену товара
-            const spotPrice = productInfo.spots ? productInfo.spots.find(spot => spot.spot_id === '1') : null;
-            const price = spotPrice ? spotPrice.price : 0;
-            const totalPrice = price * quantity;
-            
-            // Добавляем в список новых товаров
             changes.added.push({
-                product_id: productId,
-                quantity: quantity
+                product_id: select.value,
+                quantity: parseInt(quantityInput.value)
             });
             
-            // Сразу добавляем в интерфейс (временно)
-            const productsList = document.getElementById('productsList');
-            const newProductHtml = `
-                <div class="product-item" data-product-id="${productId}" style="background: #e8f5e8; border-left: 4px solid #28a745;">
-                    <div class="product-info">
-                        <div class="product-name">${productInfo.product_name} <span style="color: #28a745; font-size: 12px;">(новый)</span></div>
-                        <div class="product-id">ID: ${productId}</div>
-                    </div>
-                    <div class="product-controls">
-                        <input 
-                            type="number" 
-                            class="quantity-input" 
-                            value="${quantity}" 
-                            min="1"
-                            onchange="updateProductQuantity('${productId}', this.value)"
-                        >
-                        <div class="price">${formatPrice(totalPrice)}</div>
-                        <button 
-                            class="btn btn-danger" 
-                            onclick="removeNewProduct('${productId}')"
-                        >
-                            Удалить
-                        </button>
-                    </div>
-                </div>
-            `;
+            console.log('Товар добавлен:', select.value);
+            alert('Товар добавлен! Нажмите "Сохранить изменения"');
             
-            productsList.insertAdjacentHTML('beforeend', newProductHtml);
-            
-            // Сбрасываем форму
             select.value = '';
             quantityInput.value = 1;
-            
-            // Обновляем итоговую сумму (пока без цены нового товара)
-            updateTotalSum();
-        }
-        
-        // Удаление нового товара (до сохранения)
-        function removeNewProduct(productId) {
-            // Удаляем из списка добавленных
-            changes.added = changes.added.filter(item => item.product_id !== productId);
-            
-            // Удаляем из интерфейса
-            const productElement = document.querySelector(`[data-product-id="${productId}"]`);
-            if (productElement) {
-                productElement.remove();
-            }
-            
-            // Обновляем итоговую сумму
-            updateTotalSum();
-            
-            console.log(`Удален новый товар ${productId} из списка`);
-        }
-        
-        // Обновление итоговой суммы
-        function updateTotalSum() {
-            if (!currentTransaction) return;
-            
-            let total = parseInt(currentTransaction.sum); // Исходная сумма чека
-            
-            // Добавляем цены новых товаров
-            changes.added.forEach(item => {
-                const productInfo = availableProducts.find(p => p.product_id === item.product_id);
-                if (productInfo && productInfo.spots) {
-                    const spotPrice = productInfo.spots.find(spot => spot.spot_id === '1');
-                    if (spotPrice) {
-                        total += parseInt(spotPrice.price) * item.quantity;
-                    }
-                }
-            });
-            
-            // Учитываем изменения количества существующих товаров
-            changes.modified.forEach(item => {
-                const originalProduct = currentTransaction.products.find(p => p.product_id === item.product_id);
-                if (originalProduct) {
-                    const originalTotal = parseInt(originalProduct.payed_sum);
-                    const pricePerUnit = parseInt(originalProduct.product_price);
-                    const newTotal = pricePerUnit * item.quantity;
-                    total = total - originalTotal + newTotal;
-                }
-            });
-            
-            // Вычитаем цены удаленных товаров
-            changes.removed.forEach(item => {
-                const originalProduct = currentTransaction.products.find(p => p.product_id === item.product_id);
-                if (originalProduct) {
-                    total -= parseInt(originalProduct.payed_sum);
-                }
-            });
-            
-            document.getElementById('totalSum').textContent = formatPrice(total);
         }
 
-        // Сохранение изменений
         async function saveChanges() {
             console.log('Сохранение изменений:', changes);
-            
-            try {
-                const params = getUrlParams();
-                
-                // Добавление новых товаров
-                for (const item of changes.added) {
-                    console.log('Добавляем товар:', item);
-                    const result = await apiRequest('transactions.addTransactionProduct', 'POST', {
-                        spot_id: SPOT_ID,
-                        spot_tablet_id: SPOT_TABLET_ID,
-                        transaction_id: params.transaction_id,
-                        product_id: item.product_id
-                    });
-                    console.log('Результат добавления:', result);
-                }
-                
-                // Изменение количества
-                for (const item of changes.modified) {
-                    console.log('Изменяем количество:', item);
-                    const result = await apiRequest('transactions.changeTransactionProductCount', 'POST', {
-                        spot_id: SPOT_ID,
-                        spot_tablet_id: SPOT_TABLET_ID,
-                        transaction_id: params.transaction_id,
-                        product_id: item.product_id,
-                        count: item.quantity
-                    });
-                    console.log('Результат изменения:', result);
-                }
-                
-                // Удаление товаров
-                for (const item of changes.removed) {
-                    console.log('Удаляем товар:', item);
-                    const result = await apiRequest('transactions.removeTransactionProduct', 'POST', {
-                        spot_id: SPOT_ID,
-                        spot_tablet_id: SPOT_TABLET_ID,
-                        transaction_id: params.transaction_id,
-                        product_id: item.product_id
-                    });
-                    console.log('Результат удаления:', result);
-                }
-                
-                // Показываем успех
-                document.getElementById('success').style.display = 'block';
-                setTimeout(() => {
-                    document.getElementById('success').style.display = 'none';
-                    // Перезагружаем страницу для отображения актуальных данных
-                    location.reload();
-                }, 2000);
-                
-                // Очищаем изменения
-                changes = { added: [], modified: [], removed: [] };
-                
-            } catch (error) {
-                console.error('Ошибка сохранения:', error);
-                showError('Ошибка сохранения: ' + error.message);
-            }
-        }
-
-        // Показ ошибки
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            errorMessage.textContent = message;
-            errorDiv.style.display = 'block';
-        }
-
-        // Инициализация приложения
-        async function init() {
-            try {
-                const params = getUrlParams();
-                
-                if (!params.transaction_id) {
-                    throw new Error('Не указан номер чека');
-                }
-                
-                console.log('Загрузка чека:', params.transaction_id);
-                
-                // Загружаем только чек сначала, товары - по необходимости
-                console.log('Загружаем чек:', params.transaction_id);
-                
-                document.getElementById('loading').innerHTML = `
-                    <div class="spinner"></div>
-                    <p>Загружаем чек ${params.transaction_id}...</p>
-                `;
-                
-                // Загружаем чек и товары последовательно (рабочая версия)
-                const transactionResponse = await apiRequest(`dash.getTransaction`);
-                console.log('Transaction loaded:', transactionResponse);
-                
-                if (!transactionResponse.response || transactionResponse.response.length === 0) {
-                    throw new Error('Чек не найден');
-                }
-                
-                currentTransaction = transactionResponse.response[0];
-                
-                // Отображаем основную информацию
-                displayCheckInfo(currentTransaction);
-                
-                // Загружаем товары для названий
-                const productsResponse = await apiRequest(`menu.getProducts`);
-                availableProducts = productsResponse.response || [];
-                
-                // Отображаем товары с названиями
-                displayProducts(currentTransaction.products || []);
-                loadProductsSelect(availableProducts);
-                
-                // Показываем интерфейс
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('productsSection').style.display = 'block';
-                document.getElementById('actions').style.display = 'block';
-                
-                // Отображаем данные
-                displayCheckInfo(currentTransaction);
-                displayProducts(currentTransaction.products);
-                loadProductsSelect(availableProducts);
-                
-                // Показываем интерфейс
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('productsSection').style.display = 'block';
-                document.getElementById('actions').style.display = 'block';
-                
-            } catch (error) {
-                console.error('Ошибка инициализации:', error);
-                document.getElementById('loading').style.display = 'none';
-                showError('Ошибка загрузки: ' + error.message);
-            }
+            alert('Изменения будут сохранены через API Poster POS');
         }
 
         // Запуск приложения
-        document.addEventListener('DOMContentLoaded', init);
+        window.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
