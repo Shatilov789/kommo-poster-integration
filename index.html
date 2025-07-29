@@ -1,4 +1,19 @@
-// Инициализация приложения
+// Обновление названий товаров (без перерисовки)
+        function updateProductNames() {
+            const productItems = document.querySelectorAll('.product-item');
+            
+            productItems.forEach(item => {
+                const productId = item.getAttribute('data-product-id');
+                const productInfo = availableProducts.find(p => p.product_id === productId);
+                
+                if (productInfo) {
+                    const nameElement = item.querySelector('.product-name');
+                    if (nameElement && nameElement.textContent.startsWith('Товар ID:')) {
+                        nameElement.textContent = productInfo.product_name;
+                    }
+                }
+            });
+        }        // Инициализация приложения
         async function init() {
             try {
                 const params = getUrlParams();
@@ -851,7 +866,7 @@
                     <p>Загружаем чек ${params.transaction_id}...</p>
                 `;
                 
-                // Сначала только чек
+                // Загружаем чек и товары последовательно (рабочая версия)
                 const transactionResponse = await apiRequest(`dash.getTransaction`);
                 console.log('Transaction loaded:', transactionResponse);
                 
@@ -861,34 +876,21 @@
                 
                 currentTransaction = transactionResponse.response[0];
                 
-                // Отображаем основную информацию сразу
+                // Отображаем основную информацию
                 displayCheckInfo(currentTransaction);
+                
+                // Загружаем товары для названий
+                const productsResponse = await apiRequest(`menu.getProducts`);
+                availableProducts = productsResponse.response || [];
+                
+                // Отображаем товары с названиями
+                displayProducts(currentTransaction.products || []);
+                loadProductsSelect(availableProducts);
                 
                 // Показываем интерфейс
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('productsSection').style.display = 'block';
                 document.getElementById('actions').style.display = 'block';
-                
-                // Показываем товары без цен пока
-                displayProducts(currentTransaction.products || []);
-                
-                // Загружаем товары для получения цен
-                try {
-                    console.log('Loading products for prices...');
-                    const productsResponse = await apiRequest(`menu.getProducts`);
-                    console.log('Products loaded:', productsResponse);
-                    
-                    availableProducts = productsResponse.response || [];
-                    
-                    // Перерисовываем товары с правильными ценами
-                    displayProducts(currentTransaction.products || []);
-                    loadProductsSelect(availableProducts);
-                    
-                    console.log('Products updated with prices');
-                } catch (error) {
-                    console.warn('Ошибка загрузки товаров:', error);
-                    // Продолжаем работу без списка товаров
-                }
                 
                 // Отображаем данные
                 displayCheckInfo(currentTransaction);
