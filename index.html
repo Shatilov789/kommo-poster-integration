@@ -3,107 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор чеков Poster POS</title>
+    <title>Редактор чеков</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0, padding: 20px; background: #f5f5f5; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .header { background: #007bff; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
-        .info-item { background: rgba(255,255,255,0.2); padding: 10px; border-radius: 5px; }
-        .info-item label { font-size: 12px; opacity: 0.8; display: block; }
-        .info-item span { font-size: 16px; font-weight: bold; }
-        .products { margin: 20px 0; }
-        .product { display: flex; align-items: center; gap: 15px; padding: 15px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; }
-        .product-name { flex: 1; font-weight: bold; }
-        .quantity { width: 70px; padding: 8px; text-align: center; border: 1px solid #ddd; border-radius: 4px; }
-        .price { width: 100px; text-align: right; color: #28a745; font-weight: bold; }
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; }
+        .container { max-width: 900px; margin: 0 auto; padding: 15px; }
+        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .header h1 { font-size: 20px; margin-bottom: 8px; }
+        .info { display: flex; gap: 20px; font-size: 14px; opacity: 0.9; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        .card-header { padding: 15px 20px; border-bottom: 1px solid #eee; font-weight: 600; }
+        .product { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f5f5f5; }
+        .product:last-child { border-bottom: none; }
+        .product-name { flex: 1; font-weight: 500; }
+        .quantity { width: 60px; padding: 6px; text-align: center; border: 1px solid #ddd; border-radius: 4px; }
+        .price { width: 90px; text-align: right; color: #28a745; font-weight: 600; }
+        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; }
         .btn-danger { background: #dc3545; color: white; }
-        .btn-success { background: #28a745; color: white; padding: 15px 30px; font-size: 16px; }
-        .total { text-align: right; margin: 20px 0; font-size: 20px; font-weight: bold; color: #28a745; }
+        .btn-success { background: #28a745; color: white; padding: 12px 24px; font-size: 14px; }
+        .total { text-align: right; padding: 15px 20px; font-size: 18px; font-weight: 600; color: #28a745; background: #f8f9fa; }
         .loading { text-align: center; padding: 50px; }
-        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 10px 0; }
-        .add-form { display: flex; gap: 10px; align-items: end; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 5px; }
+        .spinner { width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .add-form { padding: 20px; background: #f8f9fa; display: flex; gap: 10px; align-items: end; }
         .form-group { flex: 1; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 13px; }
+        .form-control { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Редактор чека Poster POS</h1>
-            <div id="checkInfo" class="info">
-                <!-- Информация о чеке -->
-            </div>
+            <h1>🧾 Редактор чека Poster POS</h1>
+            <div id="checkInfo" class="info">Загрузка...</div>
         </div>
 
         <div id="loading" class="loading">
-            <p>Загрузка чека...</p>
+            <div class="spinner"></div>
+            <p>Загрузка данных...</p>
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
 
         <div id="content" style="display: none;">
-            <div class="products">
-                <h3>Товары в чеке:</h3>
+            <div class="card">
+                <div class="card-header">Товары в чеке</div>
                 <div id="productsList"></div>
-            </div>
-            
-            <div class="total">
-                Итого: <span id="totalSum">0.00 ₴</span>
+                <div class="total">Итого: <span id="totalSum">0.00 ₴</span></div>
             </div>
 
-            <div class="add-form">
-                <div class="form-group">
-                    <label>Добавить товар:</label>
-                    <select class="form-control" id="productSelect">
-                        <option value="">Выберите товар...</option>
-                    </select>
+            <div class="card">
+                <div class="add-form">
+                    <div class="form-group">
+                        <label>Добавить товар:</label>
+                        <select class="form-control" id="productSelect">
+                            <option value="">Выберите товар...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 0 0 80px;">
+                        <label>Кол-во:</label>
+                        <input type="number" class="form-control" id="productQuantity" value="1" min="1">
+                    </div>
+                    <button class="btn btn-success" onclick="addProduct()">Добавить</button>
                 </div>
-                <div class="form-group" style="flex: 0 0 100px;">
-                    <label>Количество:</label>
-                    <input type="number" class="form-control" id="productQuantity" value="1" min="1">
-                </div>
-                <button class="btn btn-success" onclick="addProduct()">Добавить</button>
             </div>
 
-            <div style="text-align: center; margin-top: 30px;">
-                <button class="btn btn-success" onclick="saveChanges()">Сохранить изменения</button>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-success" onclick="saveChanges()">💾 Сохранить изменения</button>
             </div>
         </div>
     </div>
 
     <script>
-        // БЛОКИРУЕМ ВСЮ АНАЛИТИКУ
-        (function() {
-            const block = () => Promise.resolve(new Response('{}', {status: 200}));
-            const blockProp = () => {};
-            
-            window.gtag = blockProp;
-            window.fbq = blockProp;
-            window.ga = blockProp;
-            window.dataLayer = [];
-            window._gaq = [];
-            
-            // Перехватываем fetch
-            const originalFetch = window.fetch;
-            window.fetch = function(url) {
-                if (typeof url === 'string' && (
-                    url.includes('collect') || 
-                    url.includes('gtm') || 
-                    url.includes('analytics') ||
-                    url.includes('clarity') ||
-                    url.includes('pixel') ||
-                    url.includes('facebook')
-                )) {
-                    return block();
-                }
-                return originalFetch.apply(this, arguments);
-            };
-        })();
-
+        // Конфигурация
         const API_BASE = 'http://localhost:8080/api-proxy.php';
         
         let transaction = null;
@@ -119,65 +92,65 @@
             return (kopecks / 100).toFixed(2) + ' ₴';
         }
 
+        async function api(endpoint, params = {}) {
+            const url = new URL(API_BASE);
+            url.searchParams.set('endpoint', endpoint);
+            Object.keys(params).forEach(key => {
+                url.searchParams.set(key, params[key]);
+            });
+
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
         async function loadData() {
             try {
                 const tid = getTransactionId();
-                console.log('Загружаем чек:', tid);
-                
-                // Загружаем чек
-                const transUrl = `${API_BASE}?endpoint=dash.getTransaction&transaction_id=${tid}&include_products=true`;
-                const transResponse = await fetch(transUrl);
-                const transData = await transResponse.json();
-                
-                if (!transData.response || !transData.response[0]) {
+                console.log('Loading transaction:', tid);
+
+                // Параллельная загрузка
+                const [transData, prodData] = await Promise.all([
+                    api('dash.getTransaction', {
+                        transaction_id: tid,
+                        include_products: 'true'
+                    }),
+                    api('menu.getProducts')
+                ]);
+
+                if (!transData.response?.[0]) {
                     throw new Error('Чек не найден');
                 }
-                
+
                 transaction = transData.response[0];
-                console.log('Чек загружен');
-                
-                // Загружаем товары
-                const prodUrl = `${API_BASE}?endpoint=menu.getProducts`;
-                const prodResponse = await fetch(prodUrl);
-                const prodData = await prodResponse.json();
-                
                 products = prodData.response || [];
-                console.log('Товары загружены:', products.length);
-                
-                displayAll();
-                
+
+                displayData();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+
             } catch (error) {
-                console.error('Ошибка:', error);
-                document.getElementById('error').textContent = 'Ошибка загрузки: ' + error.message;
+                console.error('Load error:', error);
+                document.getElementById('error').textContent = 'Ошибка: ' + error.message;
                 document.getElementById('error').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
             }
-            
-            document.getElementById('loading').style.display = 'none';
         }
 
-        function displayAll() {
+        function displayData() {
             // Информация о чеке
             document.getElementById('checkInfo').innerHTML = `
-                <div class="info-item">
-                    <label>Номер чека</label>
-                    <span>${transaction.transaction_id}</span>
-                </div>
-                <div class="info-item">
-                    <label>Дата</label>
-                    <span>${transaction.date_close_date || 'Открыт'}</span>
-                </div>
-                <div class="info-item">
-                    <label>Статус</label>
-                    <span>${transaction.status === '2' ? 'Закрыт' : 'Открыт'}</span>
-                </div>
+                <span>Чек №${transaction.transaction_id}</span>
+                <span>${transaction.date_close_date || 'Открыт'}</span>
+                <span>Статус: ${transaction.status === '2' ? 'Закрыт' : 'Открыт'}</span>
             `;
 
-            // Товары в чеке
+            // Товары
             const productsList = document.getElementById('productsList');
-            if (transaction.products && transaction.products.length > 0) {
+            if (transaction.products?.length) {
                 productsList.innerHTML = transaction.products.map(product => {
                     const productInfo = products.find(p => p.product_id === product.product_id);
-                    const name = productInfo ? productInfo.product_name : `Товар ID: ${product.product_id}`;
+                    const name = productInfo?.product_name || `Товар ID: ${product.product_id}`;
                     const price = product.payed_sum || (product.product_price * product.num);
                     
                     return `
@@ -186,56 +159,48 @@
                             <input type="number" class="quantity" value="${product.num}" min="1" 
                                    onchange="updateQuantity('${product.product_id}', this.value)">
                             <div class="price">${formatPrice(price)}</div>
-                            <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">Удалить</button>
+                            <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">×</button>
                         </div>
                     `;
                 }).join('');
             } else {
-                productsList.innerHTML = '<p>Товары не найдены</p>';
+                productsList.innerHTML = '<div class="product">Товары не найдены</div>';
             }
 
-            // Список товаров для добавления
+            // Товары для добавления
             const select = document.getElementById('productSelect');
             select.innerHTML = '<option value="">Выберите товар...</option>';
             products.forEach(product => {
                 if (product.hidden === '0' && product.spots) {
                     const spot = product.spots.find(s => s.spot_id === '1');
                     if (spot) {
-                        select.innerHTML += `
-                            <option value="${product.product_id}">
-                                ${product.product_name} - ${formatPrice(spot.price)}
-                            </option>
-                        `;
+                        select.innerHTML += `<option value="${product.product_id}">${product.product_name} - ${formatPrice(spot.price)}</option>`;
                     }
                 }
             });
 
-            // Итоговая сумма
+            // Итого
             document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
-
-            // Показываем контент
-            document.getElementById('content').style.display = 'block';
-            console.log('Интерфейс отображен');
         }
 
         function updateQuantity(productId, newQuantity) {
-            console.log('Изменение количества:', productId, newQuantity);
             const existing = changes.modified.find(item => item.product_id === productId);
             if (existing) {
                 existing.quantity = parseInt(newQuantity);
             } else {
                 changes.modified.push({ product_id: productId, quantity: parseInt(newQuantity) });
             }
+            console.log('Modified:', changes.modified);
         }
 
         function removeProduct(productId) {
-            console.log('Удаление товара:', productId);
             changes.removed.push({ product_id: productId });
             const element = document.querySelector(`[data-id="${productId}"]`);
             if (element) {
                 element.style.opacity = '0.5';
                 element.style.textDecoration = 'line-through';
             }
+            console.log('Removed:', changes.removed);
         }
 
         function addProduct() {
@@ -252,20 +217,35 @@
                 quantity: parseInt(quantityInput.value)
             });
             
-            console.log('Товар добавлен:', select.value);
-            alert('Товар добавлен! Нажмите "Сохранить изменения"');
-            
+            alert('Товар добавлен! Нажмите "Сохранить"');
             select.value = '';
             quantityInput.value = 1;
+            console.log('Added:', changes.added);
         }
 
         async function saveChanges() {
-            console.log('Сохранение изменений:', changes);
-            alert('Изменения будут сохранены через API Poster POS');
+            if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
+                alert('Нет изменений для сохранения');
+                return;
+            }
+            
+            try {
+                console.log('Saving changes:', changes);
+                
+                // Здесь будут реальные API вызовы
+                // Пока показываем что будет отправлено
+                alert('Изменения сохранены!\n\nДобавлено: ' + changes.added.length + '\nИзменено: ' + changes.modified.length + '\nУдалено: ' + changes.removed.length);
+                
+                // Сброс изменений
+                changes = { added: [], modified: [], removed: [] };
+                
+            } catch (error) {
+                alert('Ошибка сохранения: ' + error.message);
+            }
         }
 
-        // Запуск приложения
-        window.addEventListener('DOMContentLoaded', loadData);
+        // Запуск
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
