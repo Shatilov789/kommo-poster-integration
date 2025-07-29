@@ -1,4 +1,79 @@
-<!DOCTYPE html>
+<script>
+        // Конфигурация
+        const API_BASE = 'http://localhost:8080/api-proxy.php'; // Ваш локальный прокси
+        
+        let transaction = null;
+        let products = [];
+        let changes = { added: [], modified: [], removed: [] };
+        let isLoading = false;
+
+        // Получение ID чека из URL
+        function getTransactionId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('transaction_id') || '67'; // Используем чек 67 как видно на скриншоте
+        }
+
+        // Форматирование цены
+        function formatPrice(kopecks) {
+            return (kopecks / 100).toFixed(2) + ' ₴';
+        }
+
+        // API запросы с улучшенной обработкой ошибок
+        async function api(endpoint, params = {}) {
+            const startTime = Date.now();
+            console.log(`🌐 API запрос: ${endpoint}`, params);
+
+            try {
+                let response;
+                
+                if (endpoint.startsWith('transactions.')) {
+                    // POST для изменений транзакций
+                    const url = `${API_BASE}?endpoint=${endpoint}`;
+                    response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(params),
+                        mode: 'cors'
+                    });
+                } else {
+                    // GET для получения данных
+                    const url = new URL(API_BASE);
+                    url.searchParams.set('endpoint', endpoint);
+                    Object.keys(params).forEach(key => {
+                        if (params[key] !== null && params[key] !== undefined) {
+                            url.searchParams.set(key, params[key]);
+                        }
+                    });
+                    
+                    response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                }
+
+                const totalTime = Date.now() - startTime;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`✅ ${endpoint}: ${totalTime}ms`, data);
+                
+                return data;
+            } catch (error) {
+                console.error(`❌ ${endpoint} ошибка:`, error);
+                
+                // Показываем более понятную ошибку пользователю
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    throw new Error('Проблема с подключением к серверу. Проверьте CORS настройки.');
+                }
+                
+                throw error;
+            }
+        }<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
