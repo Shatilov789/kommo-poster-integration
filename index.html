@@ -13,8 +13,15 @@
                     }
                 }
             });
-        }        // Инициализация приложения
+        }        let isInitialized = false;
+
+        // Инициализация приложения
         async function init() {
+            if (isInitialized) {
+                console.log('Приложение уже инициализировано');
+                return;
+            }
+            isInitialized = true;
             try {
                 const params = getUrlParams();
                 
