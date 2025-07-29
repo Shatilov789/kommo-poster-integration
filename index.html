@@ -34,10 +34,15 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🧾 Редактор чека Poster POS</h1>
-            <div id="checkInfo" class="info">Загрузка...</div>
-        </div>
+        <!-- Убираем дублирующий заголовок -->
+        <div id="checkInfo" style="
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 6px; 
+            margin-bottom: 15px; 
+            font-size: 14px;
+            border-left: 4px solid #007bff;
+        ">Загрузка...</div>
 
         <div id="loading" class="loading">
             <div class="spinner"></div>
@@ -107,69 +112,99 @@
         async function loadData() {
             try {
                 const tid = getTransactionId();
-                console.log('Loading transaction:', tid);
+                console.log('=== Загрузка чека:', tid, '===');
 
-                // Параллельная загрузка
-                const [transData, prodData] = await Promise.all([
-                    api('dash.getTransaction', {
-                        transaction_id: tid,
-                        include_products: 'true'
-                    }),
-                    api('menu.getProducts')
-                ]);
+                // Шаг 1: Быстро загружаем чек
+                console.log('Шаг 1: Загрузка чека...');
+                const transData = await api('dash.getTransaction', {
+                    transaction_id: tid,
+                    include_products: 'true'
+                });
 
                 if (!transData.response?.[0]) {
                     throw new Error('Чек не найден');
                 }
 
                 transaction = transData.response[0];
-                products = prodData.response || [];
+                console.log('✅ Чек загружен за', performance.now(), 'ms');
 
-                displayData();
+                // Показываем основную информацию сразу
+                document.getElementById('checkInfo').innerHTML = `
+                    <strong>Чек №${transaction.transaction_id}</strong> | 
+                    ${transaction.date_close_date || 'Открыт'} | 
+                    Статус: ${transaction.status === '2' ? 'Закрыт' : 'Открыт'} |
+                    Сумма: ${formatPrice(transaction.sum)}
+                `;
+
+                // Показываем товары БЕЗ названий
+                displayProducts();
+                
+                // Показываем интерфейс
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').style.display = 'block';
 
+                // Шаг 2: Загружаем товары в фоне
+                console.log('Шаг 2: Загрузка товаров в фоне...');
+                const prodData = await api('menu.getProducts');
+                products = prodData.response || [];
+                console.log('✅ Товары загружены:', products.length);
+
+                // Обновляем названия
+                displayProducts();
+                displayProductSelect();
+
             } catch (error) {
-                console.error('Load error:', error);
+                console.error('❌ Ошибка загрузки:', error);
                 document.getElementById('error').textContent = 'Ошибка: ' + error.message;
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('loading').style.display = 'none';
             }
         }
 
-        function displayData() {
-            // Информация о чеке
-            document.getElementById('checkInfo').innerHTML = `
-                <span>Чек №${transaction.transaction_id}</span>
-                <span>${transaction.date_close_date || 'Открыт'}</span>
-                <span>Статус: ${transaction.status === '2' ? 'Закрыт' : 'Открыт'}</span>
-            `;
-
-            // Товары
+        function displayProducts() {
             const productsList = document.getElementById('productsList');
-            if (transaction.products?.length) {
-                productsList.innerHTML = transaction.products.map(product => {
-                    const productInfo = products.find(p => p.product_id === product.product_id);
-                    const name = productInfo?.product_name || `Товар ID: ${product.product_id}`;
-                    const price = product.payed_sum || (product.product_price * product.num);
-                    
-                    return `
-                        <div class="product" data-id="${product.product_id}">
-                            <div class="product-name">${name}</div>
-                            <input type="number" class="quantity" value="${product.num}" min="1" 
-                                   onchange="updateQuantity('${product.product_id}', this.value)">
-                            <div class="price">${formatPrice(price)}</div>
-                            <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">×</button>
-                        </div>
-                    `;
-                }).join('');
-            } else {
+            if (!transaction?.products?.length) {
                 productsList.innerHTML = '<div class="product">Товары не найдены</div>';
+                return;
             }
 
-            // Товары для добавления
+            productsList.innerHTML = transaction.products.map(product => {
+                // Ищем информацию о товаре
+                const productInfo = products.find(p => p.product_id === product.product_id);
+                const name = productInfo?.product_name || `Товар ID: ${product.product_id}`;
+                
+                // Определяем цену
+                let price = 0;
+                if (product.payed_sum && product.payed_sum !== '0') {
+                    price = product.payed_sum;
+                } else if (product.product_price && product.product_price !== '0') {
+                    price = product.product_price * (product.num || 1);
+                } else if (productInfo?.spots) {
+                    const spot = productInfo.spots.find(s => s.spot_id === '1');
+                    if (spot) {
+                        price = spot.price * (product.num || 1);
+                    }
+                }
+                
+                return `
+                    <div class="product" data-id="${product.product_id}">
+                        <div class="product-name">${name}</div>
+                        <input type="number" class="quantity" value="${product.num || 1}" min="1" 
+                               onchange="updateQuantity('${product.product_id}', this.value)">
+                        <div class="price">${formatPrice(price)}</div>
+                        <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">×</button>
+                    </div>
+                `;
+            }).join('');
+
+            // Итого
+            document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
+        }
+
+        function displayProductSelect() {
             const select = document.getElementById('productSelect');
             select.innerHTML = '<option value="">Выберите товар...</option>';
+            
             products.forEach(product => {
                 if (product.hidden === '0' && product.spots) {
                     const spot = product.spots.find(s => s.spot_id === '1');
@@ -178,9 +213,6 @@
                     }
                 }
             });
-
-            // Итого
-            document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
         }
 
         function updateQuantity(productId, newQuantity) {
