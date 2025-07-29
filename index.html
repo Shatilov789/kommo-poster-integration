@@ -366,10 +366,29 @@
     </div>
 
     <script>
-        // Отключаем аналитику для ускорения
+        // ПОЛНОЕ отключение аналитики и трекинга
         window.gtag = function() {};
         window.fbq = function() {};
         window.dataLayer = [];
+        window.ga = function() {};
+        window._gaq = [];
+        window.analytics = { track: function() {} };
+        
+        // Блокируем все попытки отправки данных
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && (
+                url.includes('collect') || 
+                url.includes('gtm') || 
+                url.includes('analytics') ||
+                url.includes('facebook') ||
+                url.includes('pixel')
+            )) {
+                console.log('Заблокирован запрос к:', url);
+                return Promise.resolve(new Response('{}', { status: 200 }));
+            }
+            return originalFetch.apply(this, arguments);
+        };
         
         // Конфигурация
         const API_BASE = 'http://localhost:8080/api-proxy.php';
@@ -392,8 +411,6 @@
                 transaction_id: params.get('transaction_id') || '330660' // Для тестов
             };
         }
-
-        // API запросы через proxy
         async function apiRequest(endpoint, method = 'GET', data = null) {
             let url = `${API_BASE}?endpoint=${endpoint}`;
             
