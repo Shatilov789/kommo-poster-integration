@@ -7,142 +7,154 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: system-ui, -apple-system, sans-serif; 
-            background: #fff; 
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            line-height: 1.4;
+            overflow-x: hidden;
+            color: #333;
         }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 6px; 
+        .container { max-width: 100%; padding: 20px; height: 100vh; overflow-y: auto; }
+        .info-header { 
+            background: white;
+            padding: 16px 20px; 
+            border-radius: 8px; 
             margin-bottom: 20px; 
-            border-left: 4px solid #007bff;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .card { 
             background: white; 
-            border: 1px solid #ddd; 
             border-radius: 8px; 
-            margin-bottom: 15px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px; 
+            border: 1px solid #e1e5e9;
         }
         .card-header { 
-            padding: 15px; 
-            background: #f8f9fa; 
-            border-bottom: 1px solid #ddd; 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #e1e5e9; 
             font-weight: 600; 
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            color: #333;
+            font-size: 15px;
         }
         .product { 
             display: flex; 
             align-items: center; 
             gap: 15px; 
-            padding: 15px; 
+            padding: 16px 20px; 
             border-bottom: 1px solid #f0f0f0; 
+            transition: background 0.2s;
         }
+        .product:hover { background: #f8f9fa; }
         .product:last-child { border-bottom: none; }
-        .product-name { flex: 1; }
+        .product-name { flex: 1; font-weight: 500; color: #333; }
+        .product-name > div:first-child { font-size: 14px; margin-bottom: 4px; }
+        .product-id { font-size: 12px; color: #8b9bc1; margin-top: 2px; }
         .quantity { 
-            width: 70px; 
-            padding: 5px; 
-            text-align: center; 
-            border: 1px solid #ddd; 
-            border-radius: 4px; 
+            width: 70px; padding: 8px; text-align: center; border: 1px solid #d1d9e0; 
+            border-radius: 6px; font-size: 14px; background: white; transition: border-color 0.2s;
         }
-        .price { 
-            width: 100px; 
-            text-align: right; 
-            color: #28a745; 
-            font-weight: 600; 
-        }
+        .quantity:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2); }
+        .price { width: 100px; text-align: right; color: #27ae60; font-weight: 600; font-size: 14px; }
         .btn { 
-            padding: 5px 10px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 12px; 
+            padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; 
+            font-size: 12px; font-weight: 500; transition: all 0.2s;
         }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-success { background: #28a745; color: white; padding: 10px 20px; font-size: 14px; }
+        .btn-danger { 
+            background: #e74c3c; color: white; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center; padding: 0;
+        }
+        .btn-danger:hover { background: #c0392b; transform: translateY(-1px); }
+        .btn-success { background: #4a90e2; color: white; padding: 12px 24px; font-size: 14px; border-radius: 6px; }
+        .btn-success:hover { background: #357abd; transform: translateY(-1px); }
+        .btn-success:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
         .total { 
-            text-align: right; 
-            padding: 15px; 
-            font-size: 18px; 
-            font-weight: 600; 
-            color: #28a745; 
-            background: #f8f9fa; 
+            text-align: right; padding: 16px 20px; font-size: 16px; font-weight: 600; 
+            color: #27ae60; background: #f8f9fa; border-radius: 0 0 8px 8px; border-top: 1px solid #e1e5e9;
         }
-        .loading { text-align: center; padding: 50px; }
-        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin: 15px 0; }
-        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .loading { text-align: center; padding: 60px 20px; color: #8b9bc1; }
+        .spinner { 
+            width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #4a90e2; 
+            border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { 
+            background: #ffeaea; color: #e74c3c; padding: 16px 20px; border-radius: 8px; 
+            margin: 15px 0; border: 1px solid #f5c6cb; font-size: 14px;
+        }
+        .success {
+            background: #eaf5ea; color: #27ae60; padding: 16px 20px; border-radius: 8px;
+            margin: 15px 0; border: 1px solid #c3e6cb; font-size: 14px;
+        }
         .add-form { 
-            padding: 20px; 
-            background: #f8f9fa; 
-            display: flex; 
-            gap: 10px; 
-            align-items: end; 
+            padding: 20px; background: #f8f9fa; display: flex; gap: 15px; 
+            align-items: end; border-radius: 0 0 8px 8px; flex-wrap: wrap;
         }
-        .form-group { flex: 1; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-control { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label { 
+            display: block; margin-bottom: 6px; font-weight: 500; 
+            font-size: 13px; color: #555;
+        }
+        .form-control { 
+            width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; 
+            border-radius: 6px; font-size: 14px; background: white; transition: border-color 0.2s;
+        }
+        .form-control:focus { outline: none; border-color: #4a90e2; box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2); }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .status-open { background: #fff3cd; color: #856404; }
+        .status-closed { background: #d4edda; color: #155724; }
+        .removed-product { opacity: 0.6; text-decoration: line-through; background: #ffeaea !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div id="checkInfo" class="header">
-            <strong>Загрузка чека...</strong>
+        <div id="checkInfo" class="info-header">
+            <span>Загрузка информации о чеке...</span>
         </div>
 
-        <div id="loading" class="loading" style="display: none;">
-            <p>⏳ Загрузка данных...</p>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Загрузка данных из Poster POS...</p>
         </div>
 
         <div id="error" class="error" style="display: none;"></div>
         <div id="success" class="success" style="display: none;"></div>
 
-        <div id="content">
-            <!-- Товары в чеке -->
+        <div id="content" style="display: none;">
             <div class="card">
                 <div class="card-header">📦 Товары в чеке</div>
-                <div id="productsList">
-                    <div class="product">
-                        <div class="product-name">
-                            <div>Товар загружается...</div>
-                            <small style="color: #666;">ID: ---</small>
-                        </div>
-                        <input type="number" class="quantity" value="1" disabled>
-                        <div class="price">0.00 ₴</div>
-                        <button class="btn btn-danger" disabled>×</button>
-                    </div>
-                </div>
+                <div id="productsList"></div>
                 <div class="total">Итого: <span id="totalSum">0.00 ₴</span></div>
             </div>
 
-            <!-- Добавление товара -->
             <div class="card">
                 <div class="card-header">➕ Добавить товар</div>
                 <div class="add-form">
                     <div class="form-group">
                         <label>Выберите товар:</label>
                         <select class="form-control" id="productSelect">
-                            <option>Загрузка товаров...</option>
+                            <option value="">Загрузка товаров...</option>
                         </select>
                     </div>
                     <div class="form-group" style="flex: 0 0 100px;">
                         <label>Количество:</label>
-                        <input type="number" class="form-control" value="1" min="1">
+                        <input type="number" class="form-control" id="productQuantity" value="1" min="1">
                     </div>
-                    <button class="btn btn-success" onclick="testFunction()" id="addBtn">
-                        Добавить
-                    </button>
+                    <button class="btn btn-success" onclick="addProduct()" id="addBtn">Добавить</button>
                 </div>
             </div>
 
-            <!-- Кнопки -->
-            <div style="text-align: center; margin-top: 20px;">
-                <button class="btn btn-success" onclick="testSave()" style="margin-right: 10px;">
+            <div style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+                <button class="btn btn-success" onclick="saveChanges()" id="saveBtn" style="margin-right: 10px;">
                     💾 Сохранить изменения
                 </button>
-                <button class="btn" onclick="testRefresh()" style="background: #6c757d; color: white;">
-                    🔄 Обновить
+                <button class="btn" onclick="refreshData()" style="background: #6c757d; color: white;">
+                    🔄 Обновить данные
                 </button>
             </div>
         </div>
@@ -151,119 +163,100 @@
     <script>
         console.log('🎯 Загрузка редактора чеков');
         
-        // Конфигурация
+        // Конфигурация API
         const API_BASE = 'http://localhost:8080/api-proxy.php';
+        const PRODUCTS_API = 'http://localhost:8080/api-proxy.php?route=products';
+        
+        // Получение параметров
         const urlParams = new URLSearchParams(window.location.search);
-        const transactionId = urlParams.get('transaction_id') || '67';
+        const transactionId = urlParams.get('transaction_id') || 'NO_ID';
         
+        // Глобальные переменные
         let transaction = null;
+        let productsDB = {};
         let changes = { added: [], modified: [], removed: [] };
-        
-        console.log('Transaction ID:', transactionId);
-        
-        // Форматирование цены (копейки -> гривны)
+
+        console.log('🔍 Transaction ID:', transactionId);
+        console.log('📡 API Base:', API_BASE);
+        console.log('🗄️ Products API:', PRODUCTS_API);
+
+        // Форматирование цены
         function formatPrice(kopecks) {
             return (parseInt(kopecks) / 100).toFixed(2) + ' ₴';
         }
-        
-        // API запрос через локальный прокси
+
+        // API запрос к Poster
         async function apiRequest(endpoint, params = {}) {
             try {
-                // Используем локальный прокси
                 const url = new URL(API_BASE);
                 url.searchParams.set('endpoint', endpoint);
                 Object.keys(params).forEach(key => {
                     url.searchParams.set(key, params[key]);
                 });
                 
-                console.log('🌐 API запрос через прокси:', url.toString());
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    mode: 'cors'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+                const response = await fetch(url, { method: 'GET', mode: 'cors' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const data = await response.json();
-                console.log('✅ Ответ получен через прокси:', data);
+                console.log(`✅ ${endpoint}:`, data);
                 return data;
-                
             } catch (error) {
-                console.error('❌ Ошибка прокси API:', error);
-                
-                // Если прокси не работает, используем fallback с правильным ID
-                console.log('🔄 Прокси недоступен, используем fallback данные для чека', transactionId);
-                return getFallbackData();
+                console.error(`❌ ${endpoint} ошибка:`, error);
+                throw error;
             }
         }
-        
-        // Fallback данные с динамическим ID
-        function getFallbackData() {
-            return {
-                "response": [
-                    {
-                        "transaction_id": transactionId, // Используем реальный ID
-                        "date_close_date": "2025-07-24 22:28:41",
-                        "status": "1",
-                        "sum": "60000",
-                        "products": [
-                            {
-                                "product_id": "2328",
-                                "num": "1.0000000",
-                                "product_price": "10000"
-                            },
-                            {
-                                "product_id": "2330", 
-                                "num": "1.0000000",
-                                "product_price": "10000"
-                            },
-                            {
-                                "product_id": "2332",
-                                "num": "1.0000000", 
-                                "product_price": "10000"
-                            },
-                            {
-                                "product_id": "2326",
-                                "num": "2.0000000",
-                                "product_price": "20000"
-                            },
-                            {
-                                "product_id": "2324",
-                                "num": "1.0000000",
-                                "product_price": "10000"
-                            }
-                        ]
-                    }
-                ]
-            };
+
+        // Загрузка товаров из БД
+        async function loadProductsFromDB() {
+            try {
+                console.log('📦 Загружаем товары из БД через прокси...');
+                
+                const productIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
+                if (productIds.length === 0) return;
+
+                const url = `${PRODUCTS_API}&path=products&product_ids=${productIds.join(',')}`;
+                console.log('🌐 Запрос к БД:', url);
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Products API error: ${response.status}`);
+                
+                const data = await response.json();
+                console.log('📋 Ответ от БД:', data);
+                
+                if (data.success && data.data) {
+                    productsDB = {};
+                    data.data.forEach(product => {
+                        productsDB[product.product_id] = product;
+                    });
+                    console.log('✅ Загружено товаров из БД:', Object.keys(productsDB).length);
+                }
+            } catch (error) {
+                console.warn('⚠️ Ошибка загрузки товаров из БД:', error.message);
+                document.getElementById('error').innerHTML = `
+                    <strong>Предупреждение:</strong> Не удалось загрузить названия товаров. 
+                    Будут показаны только ID товаров.<br><small>Ошибка: ${error.message}</small>
+                `;
+                document.getElementById('error').style.display = 'block';
+                productsDB = {};
+            }
         }
-        
+
         // Загрузка данных чека
         async function loadTransaction() {
             try {
                 document.getElementById('loading').style.display = 'block';
-                document.getElementById('checkInfo').innerHTML = '<strong>Загрузка чека №' + transactionId + '...</strong>';
                 
-                // Получаем данные чека из Poster
                 const data = await apiRequest('dash.getTransaction', {
                     transaction_id: transactionId,
                     include_products: 'true'
                 });
                 
-                if (!data.response || !data.response[0]) {
-                    throw new Error('Чек не найден');
-                }
+                if (!data.response?.[0]) throw new Error('Чек не найден');
                 
                 transaction = data.response[0];
                 console.log('📋 Чек загружен:', transaction);
                 
-                // Загружаем информацию о товарах из БД
                 await loadProductsFromDB();
-                
-                // Отображаем интерфейс
                 displayTransaction();
                 
             } catch (error) {
@@ -274,122 +267,37 @@
                 document.getElementById('loading').style.display = 'none';
             }
         }
-        
-        // Загрузка товаров из вашей БД
-        async function loadProductsFromDB() {
-            try {
-                console.log('📦 Загружаем товары из БД...');
-                console.log('🔗 Products API URL:', PRODUCTS_API);
-                
-                // Проверяем доступность БД через прокси
-                try {
-                    const healthCheck = await fetch(`${PRODUCTS_API}&path=`, { method: 'GET' });
-                    console.log('💓 Health check БД через прокси:', healthCheck.status, healthCheck.statusText);
-                    
-                    if (!healthCheck.ok) {
-                        throw new Error(`Health check failed: ${healthCheck.status}`);
-                    }
-                } catch (healthError) {
-                    console.warn('⚠️ БД недоступна через прокси:', healthError.message);
-                    throw new Error('БД товаров недоступна через прокси: ' + healthError.message);
-                }
-                
-                // Собираем все ID товаров из чека
-                const productIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
-                
-                if (productIds.length === 0) {
-                    console.log('📦 В чеке нет товаров');
-                    return;
-                }
-                
-                console.log('🔍 Ищем товары с ID:', productIds);
-                
-                // Запрашиваем товары по ID из БД через прокси
-                const url = `${PRODUCTS_API}&path=products&product_ids=${productIds.join(',')}`;
-                console.log('🌐 Запрос к БД через прокси:', url);
-                
-                const response = await fetch(url);
-                
-                if (!response.ok) {
-                    throw new Error(`Products API error: ${response.status} ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log('📋 Ответ от БД:', data);
-                
-                if (data.success && data.data) {
-                    // Создаем мапу товаров для быстрого поиска
-                    productsDB = {};
-                    data.data.forEach(product => {
-                        productsDB[product.product_id] = product;
-                    });
-                    
-                    console.log('✅ Загружено товаров из БД:', Object.keys(productsDB).length);
-                    console.log('📦 Товары в кеше:', productsDB);
-                } else {
-                    console.warn('⚠️ Не удалось загрузить товары из БД:', data);
-                }
-                
-            } catch (error) {
-                console.warn('⚠️ Ошибка загрузки товаров из БД:', error.message);
-                console.warn('🔄 Продолжаем работу без названий товаров');
-                
-                // Показываем ошибку в интерфейсе
-                document.getElementById('error').innerHTML = `
-                    <strong>Предупреждение:</strong> Не удалось загрузить названия товаров из БД. 
-                    Будут показаны только ID товаров. <br>
-                    <small>Ошибка: ${error.message}</small>
-                `;
-                document.getElementById('error').style.display = 'block';
-                
-                // Продолжаем работу без названий товаров
-                productsDB = {};
-            }
-        }
-        
-        // Отображение данных чека
+
+        // Отображение чека
         function displayTransaction() {
             if (!transaction) return;
             
-            // Заголовок
             const status = transaction.status === '1' ? 'Открыт' : 'Закрыт';
-            const statusColor = transaction.status === '1' ? '#ffc107' : '#28a745';
             
             document.getElementById('checkInfo').innerHTML = `
                 <div>
-                    <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">
-                        Чек №${transaction.transaction_id}
-                    </div>
+                    <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">Чек №${transaction.transaction_id}</div>
                     <div style="font-size: 13px; color: #8b9bc1;">
                         ${transaction.date_close_date || 'В обработке'} • 
-                        <span class="status-badge ${transaction.status === '1' ? 'status-open' : 'status-closed'}">
-                            ${status}
-                        </span>
+                        <span class="status-badge ${transaction.status === '1' ? 'status-open' : 'status-closed'}">${status}</span>
                     </div>
                 </div>
-                <div style="color: #27ae60; font-weight: 600; font-size: 18px;">
-                    ${formatPrice(transaction.sum)}
-                </div>
+                <div style="color: #27ae60; font-weight: 600; font-size: 18px;">${formatPrice(transaction.sum)}</div>
             `;
             
-            // Товары
             const products = transaction.products || [];
             if (products.length === 0) {
-                document.getElementById('productsList').innerHTML = 
-                    '<div class="product">В чеке нет товаров</div>';
+                document.getElementById('productsList').innerHTML = '<div class="product">В чеке нет товаров</div>';
                 return;
             }
             
             let productsHtml = '';
             products.forEach(product => {
-                // Используем product_price как общую цену за все количество
                 const totalPrice = product.product_price;
                 const quantity = parseFloat(product.num);
-                const unitPrice = Math.round(totalPrice / quantity); // Цена за единицу
+                const unitPrice = Math.round(totalPrice / quantity);
                 
-                // Получаем информацию о товаре из БД
                 const productInfo = productsDB[product.product_id] || null;
-                
                 let productName = `Товар ID: ${product.product_id}`;
                 let productCode = '';
                 
@@ -402,9 +310,7 @@
                     <div class="product" data-id="${product.product_id}">
                         <div class="product-name">
                             <div>${productName}${productCode}</div>
-                            <div class="product-id">
-                                ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}
-                            </div>
+                            <div class="product-id">ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
                         </div>
                         <input type="number" class="quantity" value="${quantity}" min="1" step="1"
                                onchange="updateQuantity('${product.product_id}', this.value)">
@@ -416,24 +322,18 @@
             
             document.getElementById('productsList').innerHTML = productsHtml;
             document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
+            document.getElementById('content').style.display = 'block';
             
-            // Загружаем список всех товаров для селекта добавления
             loadAllProductsForSelect();
         }
-        
-        // Загрузка всех товаров для селекта добавления
+
+        // Загрузка товаров для селекта
         async function loadAllProductsForSelect() {
             try {
-                console.log('📋 Загружаем все товары для селекта...');
-                
                 const response = await fetch(`${PRODUCTS_API}&path=products&limit=100`);
-                
-                if (!response.ok) {
-                    throw new Error(`Products API error: ${response.status}`);
-                }
+                if (!response.ok) return;
                 
                 const data = await response.json();
-                
                 if (data.success && data.data) {
                     const select = document.getElementById('productSelect');
                     select.innerHTML = '<option value="">Выберите товар...</option>';
@@ -441,87 +341,84 @@
                     data.data.forEach(product => {
                         const displayName = product.product_name + 
                             (product.product_code ? ` (${product.product_code})` : '') +
-                            ` - ${formatPrice(product.price * 100)}`; // API возвращает в гривнах, нужно в копейки
-                        
+                            ` - ${formatPrice(product.price * 100)}`;
                         select.innerHTML += `<option value="${product.product_id}">${displayName}</option>`;
                     });
-                    
-                    console.log('✅ Загружено товаров для селекта:', data.data.length);
-                } else {
-                    console.warn('⚠️ Не удалось загрузить товары для селекта');
-                    document.getElementById('productSelect').innerHTML = '<option value="">Товары недоступны</option>';
                 }
-                
             } catch (error) {
                 console.warn('⚠️ Ошибка загрузки товаров для селекта:', error);
-                document.getElementById('productSelect').innerHTML = '<option value="">Ошибка загрузки товаров</option>';
             }
         }
-        
-        // Изменение количества
+
+        // Функции изменения
         function updateQuantity(productId, newQuantity) {
-            console.log('📝 Изменение количества:', productId, newQuantity);
+            const qty = parseInt(newQuantity);
+            if (qty < 1) return;
             
             const existing = changes.modified.find(item => item.product_id === productId);
             if (existing) {
-                existing.quantity = parseInt(newQuantity);
+                existing.quantity = qty;
             } else {
-                changes.modified.push({ product_id: productId, quantity: parseInt(newQuantity) });
+                changes.modified.push({ product_id: productId, quantity: qty });
             }
-            
-            updateChangesIndicator();
+            console.log('Изменено количество:', productId, qty);
         }
-        
-        // Удаление товара
+
         function removeProduct(productId) {
-            console.log('❌ Удаление товара:', productId);
+            const isAlreadyRemoved = changes.removed.some(r => r.product_id === productId);
+            if (isAlreadyRemoved) return;
             
             changes.removed.push({ product_id: productId });
             
             const element = document.querySelector(`[data-id="${productId}"]`);
             if (element) {
-                element.style.opacity = '0.5';
-                element.style.textDecoration = 'line-through';
+                element.classList.add('removed-product');
                 const btn = element.querySelector('.btn-danger');
-                if (btn) {
-                    btn.textContent = '✓';
-                    btn.disabled = true;
-                }
+                const input = element.querySelector('.quantity');
+                if (btn) { btn.textContent = '✓'; btn.disabled = true; }
+                if (input) input.disabled = true;
+            }
+            console.log('Удален товар:', productId);
+        }
+
+        function addProduct() {
+            const select = document.getElementById('productSelect');
+            const quantityInput = document.getElementById('productQuantity');
+            
+            if (!select.value) {
+                alert('Выберите товар для добавления');
+                return;
             }
             
-            updateChangesIndicator();
+            const qty = parseInt(quantityInput.value);
+            if (qty < 1) {
+                alert('Количество должно быть больше 0');
+                return;
+            }
+            
+            changes.added.push({ product_id: select.value, quantity: qty });
+            
+            const productInfo = productsDB[select.value] || { product_name: `ID: ${select.value}` };
+            document.getElementById('success').textContent = 
+                `Товар "${productInfo.product_name}" (${qty} шт.) добавлен в список изменений`;
+            document.getElementById('success').style.display = 'block';
+            
+            select.value = '';
+            quantityInput.value = 1;
+            
+            setTimeout(() => document.getElementById('success').style.display = 'none', 3000);
         }
-        
-        // Обновление индикатора изменений
-        function updateChangesIndicator() {
+
+        function saveChanges() {
             const total = changes.added.length + changes.modified.length + changes.removed.length;
-            console.log('🔄 Изменений:', total, changes);
-            
-            if (total > 0) {
-                document.getElementById('success').textContent = 
-                    `Изменений: ${total} (добавлено: ${changes.added.length}, изменено: ${changes.modified.length}, удалено: ${changes.removed.length})`;
-                document.getElementById('success').style.display = 'block';
-            } else {
-                document.getElementById('success').style.display = 'none';
-            }
-        }
-        
-        // Тестовые функции
-        function testFunction() {
-            alert('Функция добавления товара (пока тестовая)');
-        }
-        
-        function testSave() {
-            console.log('💾 Сохранение изменений:', changes);
-            
-            if (changes.added.length === 0 && changes.modified.length === 0 && changes.removed.length === 0) {
+            if (total === 0) {
                 alert('Нет изменений для сохранения');
                 return;
             }
             
+            console.log('💾 Сохранение изменений:', changes);
             alert('Изменения будут сохранены:\n' + JSON.stringify(changes, null, 2));
             
-            // Уведомляем родительское окно
             if (window.parent !== window) {
                 window.parent.postMessage({
                     type: 'poster-check-saved',
@@ -530,25 +427,16 @@
                 }, '*');
             }
         }
-        
-        function testRefresh() {
+
+        function refreshData() {
             location.reload();
         }
-        
-        // Обработка ошибок
-        window.addEventListener('error', function(event) {
-            console.error('Ошибка:', event.error);
-            document.getElementById('error').textContent = 'JavaScript ошибка: ' + event.error.message;
-            document.getElementById('error').style.display = 'block';
-        });
-        
-        // Запуск при загрузке
+
+        // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM загружен, начинаем загрузку данных');
             loadTransaction();
         });
-        
-        console.log('📁 Скрипт инициализирован');
     </script>
 </body>
 </html>
