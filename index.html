@@ -247,7 +247,7 @@
                 document.getElementById('loading').style.display = 'block';
                 document.getElementById('checkInfo').innerHTML = '<strong>Загрузка чека №' + transactionId + '...</strong>';
                 
-                // Получаем данные чека
+                // Получаем данные чека из Poster
                 const data = await apiRequest('dash.getTransaction', {
                     transaction_id: transactionId,
                     include_products: 'true'
@@ -260,7 +260,10 @@
                 transaction = data.response[0];
                 console.log('📋 Чек загружен:', transaction);
                 
-                // Обновляем интерфейс
+                // Загружаем информацию о товарах из БД
+                await loadProductsFromDB();
+                
+                // Отображаем интерфейс
                 displayTransaction();
                 
             } catch (error) {
@@ -269,6 +272,46 @@
                 document.getElementById('error').style.display = 'block';
             } finally {
                 document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        // Загрузка товаров из вашей БД
+        async function loadProductsFromDB() {
+            try {
+                console.log('📦 Загружаем товары из БД...');
+                
+                // Собираем все ID товаров из чека
+                const productIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
+                
+                if (productIds.length === 0) {
+                    console.log('📦 В чеке нет товаров');
+                    return;
+                }
+                
+                // Запрашиваем товары по ID из БД
+                const response = await fetch(`${PRODUCTS_API}/products?product_ids=${productIds.join(',')}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Products API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    // Создаем мапу товаров для быстрого поиска
+                    productsDB = {};
+                    data.data.forEach(product => {
+                        productsDB[product.product_id] = product;
+                    });
+                    
+                    console.log('✅ Загружено товаров из БД:', Object.keys(productsDB).length);
+                } else {
+                    console.warn('⚠️ Не удалось загрузить товары из БД:', data);
+                }
+                
+            } catch (error) {
+                console.warn('⚠️ Ошибка загрузки товаров из БД:', error);
+                // Продолжаем работу без названий товаров
             }
         }
         
@@ -281,15 +324,19 @@
             const statusColor = transaction.status === '1' ? '#ffc107' : '#28a745';
             
             document.getElementById('checkInfo').innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>Чек №${transaction.transaction_id}</strong> | 
-                        ${transaction.date_close_date || 'В обработке'} |
-                        <span style="color: ${statusColor};">Статус: ${status}</span>
+                <div>
+                    <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">
+                        Чек №${transaction.transaction_id}
                     </div>
-                    <div style="color: #28a745; font-weight: 600; font-size: 18px;">
-                        ${formatPrice(transaction.sum)}
+                    <div style="font-size: 13px; color: #8b9bc1;">
+                        ${transaction.date_close_date || 'В обработке'} • 
+                        <span class="status-badge ${transaction.status === '1' ? 'status-open' : 'status-closed'}">
+                            ${status}
+                        </span>
                     </div>
+                </div>
+                <div style="color: #27ae60; font-weight: 600; font-size: 18px;">
+                    ${formatPrice(transaction.sum)}
                 </div>
             `;
             
@@ -308,13 +355,24 @@
                 const quantity = parseFloat(product.num);
                 const unitPrice = Math.round(totalPrice / quantity); // Цена за единицу
                 
+                // Получаем информацию о товаре из БД
+                const productInfo = productsDB[product.product_id];
+                
+                let productName = `Товар ID: ${product.product_id}`;
+                let productCode = '';
+                
+                if (productInfo) {
+                    productName = productInfo.product_name;
+                    productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
+                }
+                
                 productsHtml += `
                     <div class="product" data-id="${product.product_id}">
                         <div class="product-name">
-                            <div>Товар ID: ${product.product_id}</div>
-                            <small style="color: #666;">
-                                ${formatPrice(unitPrice)} за шт. × ${quantity} = ${formatPrice(totalPrice)}
-                            </small>
+                            <div>${productName}${productCode}</div>
+                            <div class="product-id">
+                                ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}
+                            </div>
                         </div>
                         <input type="number" class="quantity" value="${quantity}" min="1" step="1"
                                onchange="updateQuantity('${product.product_id}', this.value)">
@@ -326,6 +384,46 @@
             
             document.getElementById('productsList').innerHTML = productsHtml;
             document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
+            
+            // Загружаем список всех товаров для селекта добавления
+            loadAllProductsForSelect();
+        }
+        
+        // Загрузка всех товаров для селекта добавления
+        async function loadAllProductsForSelect() {
+            try {
+                console.log('📋 Загружаем все товары для селекта...');
+                
+                const response = await fetch(`${PRODUCTS_API}/products?limit=100`);
+                
+                if (!response.ok) {
+                    throw new Error(`Products API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const select = document.getElementById('productSelect');
+                    select.innerHTML = '<option value="">Выберите товар...</option>';
+                    
+                    data.data.forEach(product => {
+                        const displayName = product.product_name + 
+                            (product.product_code ? ` (${product.product_code})` : '') +
+                            ` - ${formatPrice(product.price * 100)}`; // API возвращает в гривнах, нужно в копейки
+                        
+                        select.innerHTML += `<option value="${product.product_id}">${displayName}</option>`;
+                    });
+                    
+                    console.log('✅ Загружено товаров для селекта:', data.data.length);
+                } else {
+                    console.warn('⚠️ Не удалось загрузить товары для селекта');
+                    document.getElementById('productSelect').innerHTML = '<option value="">Товары недоступны</option>';
+                }
+                
+            } catch (error) {
+                console.warn('⚠️ Ошибка загрузки товаров для селекта:', error);
+                document.getElementById('productSelect').innerHTML = '<option value="">Ошибка загрузки товаров</option>';
+            }
         }
         
         // Изменение количества
