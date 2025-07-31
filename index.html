@@ -279,6 +279,16 @@
         async function loadProductsFromDB() {
             try {
                 console.log('📦 Загружаем товары из БД...');
+                console.log('🔗 Products API URL:', PRODUCTS_API);
+                
+                // Проверяем доступность БД
+                try {
+                    const healthCheck = await fetch(`${PRODUCTS_API}/`, { method: 'GET' });
+                    console.log('💓 Health check БД:', healthCheck.status);
+                } catch (healthError) {
+                    console.warn('⚠️ БД недоступна:', healthError.message);
+                    throw new Error('БД товаров недоступна');
+                }
                 
                 // Собираем все ID товаров из чека
                 const productIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
@@ -288,14 +298,20 @@
                     return;
                 }
                 
+                console.log('🔍 Ищем товары с ID:', productIds);
+                
                 // Запрашиваем товары по ID из БД
-                const response = await fetch(`${PRODUCTS_API}/products?product_ids=${productIds.join(',')}`);
+                const url = `${PRODUCTS_API}/products?product_ids=${productIds.join(',')}`;
+                console.log('🌐 Запрос к БД:', url);
+                
+                const response = await fetch(url);
                 
                 if (!response.ok) {
-                    throw new Error(`Products API error: ${response.status}`);
+                    throw new Error(`Products API error: ${response.status} ${response.statusText}`);
                 }
                 
                 const data = await response.json();
+                console.log('📋 Ответ от БД:', data);
                 
                 if (data.success && data.data) {
                     // Создаем мапу товаров для быстрого поиска
@@ -305,13 +321,25 @@
                     });
                     
                     console.log('✅ Загружено товаров из БД:', Object.keys(productsDB).length);
+                    console.log('📦 Товары в кеше:', productsDB);
                 } else {
                     console.warn('⚠️ Не удалось загрузить товары из БД:', data);
                 }
                 
             } catch (error) {
-                console.warn('⚠️ Ошибка загрузки товаров из БД:', error);
+                console.warn('⚠️ Ошибка загрузки товаров из БД:', error.message);
+                console.warn('🔄 Продолжаем работу без названий товаров');
+                
+                // Показываем ошибку в интерфейсе
+                document.getElementById('error').innerHTML = `
+                    <strong>Предупреждение:</strong> Не удалось загрузить названия товаров из БД. 
+                    Будут показаны только ID товаров. <br>
+                    <small>Ошибка: ${error.message}</small>
+                `;
+                document.getElementById('error').style.display = 'block';
+                
                 // Продолжаем работу без названий товаров
+                productsDB = {};
             }
         }
         
@@ -356,13 +384,13 @@
                 const unitPrice = Math.round(totalPrice / quantity); // Цена за единицу
                 
                 // Получаем информацию о товаре из БД
-                const productInfo = productsDB[product.product_id];
+                const productInfo = productsDB[product.product_id] || null;
                 
                 let productName = `Товар ID: ${product.product_id}`;
                 let productCode = '';
                 
                 if (productInfo) {
-                    productName = productInfo.product_name;
+                    productName = productInfo.product_name || productName;
                     productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
                 }
                 
