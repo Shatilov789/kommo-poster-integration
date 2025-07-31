@@ -281,13 +281,17 @@
                 console.log('📦 Загружаем товары из БД...');
                 console.log('🔗 Products API URL:', PRODUCTS_API);
                 
-                // Проверяем доступность БД
+                // Проверяем доступность БД через прокси
                 try {
                     const healthCheck = await fetch(`${PRODUCTS_API}&path=`, { method: 'GET' });
-                    console.log('💓 Health check БД через прокси:', healthCheck.status);
+                    console.log('💓 Health check БД через прокси:', healthCheck.status, healthCheck.statusText);
+                    
+                    if (!healthCheck.ok) {
+                        throw new Error(`Health check failed: ${healthCheck.status}`);
+                    }
                 } catch (healthError) {
                     console.warn('⚠️ БД недоступна через прокси:', healthError.message);
-                    throw new Error('БД товаров недоступна через прокси');
+                    throw new Error('БД товаров недоступна через прокси: ' + healthError.message);
                 }
                 
                 // Собираем все ID товаров из чека
