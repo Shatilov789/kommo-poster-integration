@@ -283,11 +283,11 @@
                 
                 // Проверяем доступность БД
                 try {
-                    const healthCheck = await fetch(`${PRODUCTS_API}/`, { method: 'GET' });
-                    console.log('💓 Health check БД:', healthCheck.status);
+                    const healthCheck = await fetch(`${PRODUCTS_API}&path=`, { method: 'GET' });
+                    console.log('💓 Health check БД через прокси:', healthCheck.status);
                 } catch (healthError) {
-                    console.warn('⚠️ БД недоступна:', healthError.message);
-                    throw new Error('БД товаров недоступна');
+                    console.warn('⚠️ БД недоступна через прокси:', healthError.message);
+                    throw new Error('БД товаров недоступна через прокси');
                 }
                 
                 // Собираем все ID товаров из чека
@@ -300,9 +300,9 @@
                 
                 console.log('🔍 Ищем товары с ID:', productIds);
                 
-                // Запрашиваем товары по ID из БД
-                const url = `${PRODUCTS_API}/products?product_ids=${productIds.join(',')}`;
-                console.log('🌐 Запрос к БД:', url);
+                // Запрашиваем товары по ID из БД через прокси
+                const url = `${PRODUCTS_API}&path=products&product_ids=${productIds.join(',')}`;
+                console.log('🌐 Запрос к БД через прокси:', url);
                 
                 const response = await fetch(url);
                 
@@ -422,7 +422,7 @@
             try {
                 console.log('📋 Загружаем все товары для селекта...');
                 
-                const response = await fetch(`${PRODUCTS_API}/products?limit=100`);
+                const response = await fetch(`${PRODUCTS_API}&path=products&limit=100`);
                 
                 if (!response.ok) {
                     throw new Error(`Products API error: ${response.status}`);
