@@ -256,7 +256,14 @@
                 }
                 
                 const data = await response.json();
-                console.log(`✅ ${endpoint} успешно:`, data);
+                console.log(`✅ ${endpoint} ответ:`, data);
+                
+                // Проверяем наличие ошибки в ответе
+                if (data.error) {
+                    console.error(`❌ ${endpoint} вернул ошибку:`, data.error);
+                    throw new Error(`API Error: ${JSON.stringify(data.error)}`);
+                }
+                
                 return data;
                 
             } catch (error) {
@@ -656,10 +663,11 @@
                         }, '*');
                     }
                     
-                    // Перезагружаем чек через 2 секунды
+                    // Перезагружаем чек через 3 секунды (увеличили время)
                     setTimeout(() => {
+                        console.log('🔄 Перезагружаем страницу...');
                         location.reload();
-                    }, 2000);
+                    }, 3000);
                 })
                 .catch(error => {
                     console.error('❌ Ошибка сохранения:', error);
