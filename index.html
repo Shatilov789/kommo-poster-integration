@@ -400,10 +400,20 @@
             }
             
             let productsHtml = '';
+            let totalSum = 0;
+            
             products.forEach(product => {
                 const totalPrice = product.product_price;
                 const quantity = parseFloat(product.num);
+                
+                // Скрываем товары с количеством 0 (удаленные)
+                if (quantity === 0 || totalPrice === 0) {
+                    console.log('Скрываем удаленный товар:', product.product_id);
+                    return;
+                }
+                
                 const unitPrice = Math.round(totalPrice / quantity);
+                totalSum += parseInt(totalPrice);
                 
                 const productInfo = productsDB[product.product_id] || null;
                 let productName = `Товар ID: ${product.product_id}`;
@@ -428,8 +438,42 @@
                 `;
             });
             
+            // Добавляем новые товары из изменений
+            changes.added.forEach(addedItem => {
+                const productInfo = productsDB[addedItem.product_id] || null;
+                let productName = `Товар ID: ${addedItem.product_id}`;
+                let productCode = '';
+                let unitPrice = 0;
+                
+                if (productInfo) {
+                    productName = productInfo.product_name || productName;
+                    productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
+                    unitPrice = Math.round(productInfo.price * 100); // Цена из БД в копейках
+                }
+                
+                const totalPrice = unitPrice * addedItem.quantity;
+                totalSum += totalPrice;
+                
+                productsHtml += `
+                    <div class="product" data-id="${addedItem.product_id}" style="background: #e8f5e8; border-left: 4px solid #28a745;">
+                        <div class="product-name">
+                            <div>${productName}${productCode} <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span></div>
+                            <div class="product-id">ID: ${addedItem.product_id} • ${formatPrice(unitPrice)} за шт. × ${addedItem.quantity}</div>
+                        </div>
+                        <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
+                               onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
+                        <div class="price">${formatPrice(totalPrice)}</div>
+                        <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')">×</button>
+                    </div>
+                `;
+            });
+            
+            if (!productsHtml) {
+                productsHtml = '<div class="product">В чеке нет товаров</div>';
+            }
+            
             document.getElementById('productsList').innerHTML = productsHtml;
-            document.getElementById('totalSum').textContent = formatPrice(transaction.sum);
+            document.getElementById('totalSum').textContent = formatPrice(totalSum);
             document.getElementById('content').style.display = 'block';
             
             loadAllProductsForSelect();
@@ -477,16 +521,21 @@
             if (isAlreadyRemoved) return;
             
             changes.removed.push({ product_id: productId });
+            console.log('Удален товар:', productId);
             
+            // Сразу скрываем товар из интерфейса
             const element = document.querySelector(`[data-id="${productId}"]`);
             if (element) {
-                element.classList.add('removed-product');
-                const btn = element.querySelector('.btn-danger');
-                const input = element.querySelector('.quantity');
-                if (btn) { btn.textContent = '✓'; btn.disabled = true; }
-                if (input) input.disabled = true;
+                element.style.transition = 'opacity 0.3s ease';
+                element.style.opacity = '0';
+                
+                setTimeout(() => {
+                    // Перерисовываем чек без удаленного товара
+                    displayTransaction();
+                }, 300);
             }
-            console.log('Удален товар:', productId);
+            
+            showMessage('Товар удален из чека', 'success');
         }
 
         function addProduct() {
@@ -504,16 +553,53 @@
                 return;
             }
             
-            changes.added.push({ product_id: select.value, quantity: qty });
+            // Проверяем, не добавлен ли уже этот товар
+            const existingAdded = changes.added.find(item => item.product_id === select.value);
+            if (existingAdded) {
+                // Увеличиваем количество если товар уже добавлен
+                existingAdded.quantity += qty;
+            } else {
+                // Добавляем новый товар
+                changes.added.push({ product_id: select.value, quantity: qty });
+            }
             
             const productInfo = productsDB[select.value] || { product_name: `ID: ${select.value}` };
             showMessage(
-                `Товар "${productInfo.product_name}" (${qty} шт.) добавлен в список изменений`,
+                `Товар "${productInfo.product_name}" (${qty} шт.) добавлен в чек`,
                 'success'
             );
             
             select.value = '';
             quantityInput.value = 1;
+            
+            // Перерисовываем чек с новым товаром
+            displayTransaction();
+        }
+
+        // Изменение количества добавленного товара
+        function updateAddedQuantity(productId, newQuantity) {
+            const qty = parseInt(newQuantity);
+            if (qty < 1) return;
+            
+            const addedItem = changes.added.find(item => item.product_id === productId);
+            if (addedItem) {
+                addedItem.quantity = qty;
+                console.log('Изменено количество добавленного товара:', productId, qty);
+                
+                // Перерисовываем для обновления цены
+                displayTransaction();
+            }
+        }
+
+        // Удаление добавленного товара (до сохранения)
+        function removeAddedProduct(productId) {
+            changes.added = changes.added.filter(item => item.product_id !== productId);
+            console.log('Удален добавленный товар:', productId);
+            
+            showMessage('Товар удален из списка добавления', 'success');
+            
+            // Перерисовываем чек
+            displayTransaction();
         }
 
         function saveChanges() {
