@@ -174,7 +174,7 @@
         // Глобальные переменные
         let transaction = null;
         let productsDB = {};
-        let allProductsDB = {}; // Для хранения данных о товарах из селекта
+        let allProductsFromSelect = {}; // Добавляем для хранения данных из селекта
         let changes = { added: [], modified: [], removed: [] };
 
         console.log('🔍 Transaction ID:', transactionId);
@@ -320,29 +320,6 @@
             }
         }
 
-        // Функция для загрузки данных о конкретном товаре
-        async function loadProductData(productId) {
-            try {
-                console.log('🔍 Загружаем данные товара:', productId);
-                const url = `${PRODUCTS_API}&path=products&product_ids=${productId}`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`API error: ${response.status}`);
-                
-                const data = await response.json();
-                if (data.success && data.data && data.data.length > 0) {
-                    const product = data.data[0];
-                    productsDB[productId] = product;
-                    allProductsDB[productId] = product;
-                    console.log('✅ Данные товара загружены:', product.product_name);
-                    return product;
-                }
-                return null;
-            } catch (error) {
-                console.warn('⚠️ Ошибка загрузки товара:', productId, error);
-                return null;
-            }
-        }
-
         // Загрузка товаров из БД
         async function loadProductsFromDB() {
             try {
@@ -364,7 +341,6 @@
                     productsDB = {};
                     data.data.forEach(product => {
                         productsDB[product.product_id] = product;
-                        allProductsDB[product.product_id] = product;
                     });
                     console.log('✅ Загружено товаров из БД:', Object.keys(productsDB).length);
                 }
@@ -465,7 +441,8 @@
             
             // Добавляем новые товары из изменений
             changes.added.forEach(addedItem => {
-                const productInfo = allProductsDB[addedItem.product_id] || null;
+                // Ищем данные в двух местах: сначала в productsDB, потом в данных из селекта
+                const productInfo = productsDB[addedItem.product_id] || allProductsFromSelect[addedItem.product_id] || null;
                 let productName = `Товар ID: ${addedItem.product_id}`;
                 let productCode = '';
                 let unitPrice = 0;
@@ -516,7 +493,9 @@
                     select.innerHTML = '<option value="">Выберите товар...</option>';
                     
                     data.data.forEach(product => {
-                        allProductsDB[product.product_id] = product; // Сохраняем данные товара
+                        // Сохраняем данные товаров из селекта
+                        allProductsFromSelect[product.product_id] = product;
+                        
                         const displayName = product.product_name + 
                             (product.product_code ? ` (${product.product_code})` : '') +
                             ` - ${formatPrice(product.price * 100)}`;
@@ -564,7 +543,7 @@
             showMessage('Товар удален из чека', 'success');
         }
 
-        async function addProduct() {
+        function addProduct() {
             const select = document.getElementById('productSelect');
             const quantityInput = document.getElementById('productQuantity');
             
@@ -579,12 +558,6 @@
                 return;
             }
             
-            // Если данных о товаре нет в allProductsDB, загружаем их
-            if (!allProductsDB[select.value]) {
-                console.log('🔍 Загружаем данные нового товара:', select.value);
-                await loadProductData(select.value);
-            }
-            
             // Проверяем, не добавлен ли уже этот товар
             const existingAdded = changes.added.find(item => item.product_id === select.value);
             if (existingAdded) {
@@ -595,7 +568,8 @@
                 changes.added.push({ product_id: select.value, quantity: qty });
             }
             
-            const productInfo = allProductsDB[select.value] || { product_name: `ID: ${select.value}` };
+            // Берем информацию о товаре из двух источников
+            const productInfo = productsDB[select.value] || allProductsFromSelect[select.value] || { product_name: `ID: ${select.value}` };
             showMessage(
                 `Товар "${productInfo.product_name}" (${qty} шт.) добавлен в чек`,
                 'success'
