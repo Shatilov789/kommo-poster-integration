@@ -174,6 +174,7 @@
         // Глобальные переменные
         let transaction = null;
         let productsDB = {};
+        let allProductsDB = {}; // Для хранения всех товаров из селекта
         let changes = { added: [], modified: [], removed: [] };
 
         console.log('🔍 Transaction ID:', transactionId);
@@ -319,6 +320,34 @@
             }
         }
 
+        // Загрузка информации о конкретном товаре
+        async function loadProductInfo(productId) {
+            try {
+                console.log('📦 Загружаем информацию о товаре:', productId);
+                
+                const url = `${PRODUCTS_API}&path=products&product_ids=${productId}`;
+                console.log('🌐 Запрос товара:', url);
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Products API error: ${response.status}`);
+                
+                const data = await response.json();
+                console.log('📋 Ответ по товару:', data);
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    const product = data.data[0];
+                    productsDB[productId] = product;
+                    allProductsDB[productId] = product;
+                    console.log('✅ Загружена информация о товаре:', product.product_name);
+                    return product;
+                }
+                return null;
+            } catch (error) {
+                console.warn('⚠️ Ошибка загрузки товара:', productId, error.message);
+                return null;
+            }
+        }
+
         // Загрузка товаров из БД
         async function loadProductsFromDB() {
             try {
@@ -340,6 +369,7 @@
                     productsDB = {};
                     data.data.forEach(product => {
                         productsDB[product.product_id] = product;
+                        allProductsDB[product.product_id] = product;
                     });
                     console.log('✅ Загружено товаров из БД:', Object.keys(productsDB).length);
                 }
@@ -377,7 +407,7 @@
         }
 
         // Отображение чека
-        function displayTransaction() {
+        async function displayTransaction() {
             if (!transaction) return;
             
             const status = transaction.status === '1' ? 'Открыт' : 'Закрыт';
@@ -394,7 +424,7 @@
             `;
             
             const products = transaction.products || [];
-            if (products.length === 0) {
+            if (products.length === 0 && changes.added.length === 0) {
                 document.getElementById('productsList').innerHTML = '<div class="product">В чеке нет товаров</div>';
                 return;
             }
@@ -439,8 +469,15 @@
             });
             
             // Добавляем новые товары из изменений
-            changes.added.forEach(addedItem => {
-                const productInfo = productsDB[addedItem.product_id] || null;
+            for (const addedItem of changes.added) {
+                let productInfo = allProductsDB[addedItem.product_id] || null;
+                
+                // Если информации нет, попробуем загрузить её
+                if (!productInfo) {
+                    console.log('🔍 Загружаем информацию для нового товара:', addedItem.product_id);
+                    productInfo = await loadProductInfo(addedItem.product_id);
+                }
+                
                 let productName = `Товар ID: ${addedItem.product_id}`;
                 let productCode = '';
                 let unitPrice = 0;
@@ -466,7 +503,7 @@
                         <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')">×</button>
                     </div>
                 `;
-            });
+            }
             
             if (!productsHtml) {
                 productsHtml = '<div class="product">В чеке нет товаров</div>';
@@ -476,7 +513,9 @@
             document.getElementById('totalSum').textContent = formatPrice(totalSum);
             document.getElementById('content').style.display = 'block';
             
-            loadAllProductsForSelect();
+            if (Object.keys(allProductsDB).length === 0) {
+                loadAllProductsForSelect();
+            }
         }
 
         // Загрузка товаров для селекта
@@ -491,6 +530,7 @@
                     select.innerHTML = '<option value="">Выберите товар...</option>';
                     
                     data.data.forEach(product => {
+                        allProductsDB[product.product_id] = product; // Сохраняем в общую базу
                         const displayName = product.product_name + 
                             (product.product_code ? ` (${product.product_code})` : '') +
                             ` - ${formatPrice(product.price * 100)}`;
@@ -538,7 +578,7 @@
             showMessage('Товар удален из чека', 'success');
         }
 
-        function addProduct() {
+        async function addProduct() {
             const select = document.getElementById('productSelect');
             const quantityInput = document.getElementById('productQuantity');
             
@@ -563,9 +603,15 @@
                 changes.added.push({ product_id: select.value, quantity: qty });
             }
             
-            const productInfo = productsDB[select.value] || { product_name: `ID: ${select.value}` };
+            // Загружаем информацию о товаре, если её еще нет
+            let productInfo = allProductsDB[select.value];
+            if (!productInfo) {
+                productInfo = await loadProductInfo(select.value);
+            }
+            
+            const productName = productInfo?.product_name || `ID: ${select.value}`;
             showMessage(
-                `Товар "${productInfo.product_name}" (${qty} шт.) добавлен в чек`,
+                `Товар "${productName}" (${qty} шт.) добавлен в чек`,
                 'success'
             );
             
@@ -577,7 +623,7 @@
         }
 
         // Изменение количества добавленного товара
-        function updateAddedQuantity(productId, newQuantity) {
+        async function updateAddedQuantity(productId, newQuantity) {
             const qty = parseInt(newQuantity);
             if (qty < 1) return;
             
