@@ -174,7 +174,7 @@
         // Глобальные переменные
         let transaction = null;
         let productsDB = {};
-        let allProductsFromSelect = {}; // Добавляем для хранения данных из селекта
+        let selectProductsData = {}; // Добавляем для хранения данных из селекта
         let changes = { added: [], modified: [], removed: [] };
 
         console.log('🔍 Transaction ID:', transactionId);
@@ -256,14 +256,7 @@
                 }
                 
                 const data = await response.json();
-                console.log(`✅ ${endpoint} ответ:`, data);
-                
-                // Проверяем наличие ошибки в ответе
-                if (data.error) {
-                    console.error(`❌ ${endpoint} вернул ошибку:`, data.error);
-                    throw new Error(`API Error: ${JSON.stringify(data.error)}`);
-                }
-                
+                console.log(`✅ ${endpoint} успешно:`, data);
                 return data;
                 
             } catch (error) {
@@ -276,24 +269,18 @@
         async function saveChangesAPI() {
             const promises = [];
             
-            console.log('💾 Начинаем сохранение. Изменения:', changes);
-            
             // Добавление новых товаров
             for (const item of changes.added) {
                 console.log('➕ Добавляем товар:', item.product_id, 'количество:', item.quantity);
                 
                 // Добавляем товар указанное количество раз
                 for (let i = 0; i < item.quantity; i++) {
-                    console.log(`📦 Добавляем ${i + 1}/${item.quantity} единицу товара ${item.product_id}`);
-                    const requestData = {
+                    const promise = apiRequest('transactions.addTransactionProduct', {
                         spot_id: '1',
                         spot_tablet_id: '1',
                         transaction_id: transactionId,
                         product_id: item.product_id
-                    };
-                    console.log('📤 Данные запроса addTransactionProduct:', requestData);
-                    
-                    const promise = apiRequest('transactions.addTransactionProduct', requestData);
+                    });
                     promises.push(promise);
                 }
             }
@@ -302,16 +289,13 @@
             for (const item of changes.modified) {
                 console.log('📝 Изменяем количество товара:', item.product_id, 'на:', item.quantity);
                 
-                const requestData = {
+                const promise = apiRequest('transactions.changeTransactionProductCount', {
                     spot_id: '1',
                     spot_tablet_id: '1',
                     transaction_id: transactionId,
                     product_id: item.product_id,
                     count: item.quantity.toString()
-                };
-                console.log('📤 Данные запроса changeTransactionProductCount:', requestData);
-                
-                const promise = apiRequest('transactions.changeTransactionProductCount', requestData);
+                });
                 promises.push(promise);
             }
             
@@ -319,25 +303,20 @@
             for (const item of changes.removed) {
                 console.log('❌ Удаляем товар:', item.product_id);
                 
-                const requestData = {
+                const promise = apiRequest('transactions.removeTransactionProduct', {
                     spot_id: '1',
                     spot_tablet_id: '1',
                     transaction_id: transactionId,
                     product_id: item.product_id
-                };
-                console.log('📤 Данные запроса removeTransactionProduct:', requestData);
-                
-                const promise = apiRequest('transactions.removeTransactionProduct', requestData);
+                });
                 promises.push(promise);
             }
             
             // Выполняем все операции параллельно
             if (promises.length > 0) {
                 console.log(`🚀 Выполняем ${promises.length} операций с чеком...`);
-                const results = await Promise.all(promises);
-                console.log('✅ Все операции выполнены успешно. Результаты:', results);
-            } else {
-                console.log('⚠️ Нет операций для выполнения');
+                await Promise.all(promises);
+                console.log('✅ Все операции выполнены успешно');
             }
         }
 
@@ -462,8 +441,8 @@
             
             // Добавляем новые товары из изменений
             changes.added.forEach(addedItem => {
-                // Ищем данные в двух местах: сначала в productsDB, потом в данных из селекта
-                const productInfo = productsDB[addedItem.product_id] || allProductsFromSelect[addedItem.product_id] || null;
+                // Ищем информацию в productsDB или selectProductsData
+                const productInfo = productsDB[addedItem.product_id] || selectProductsData[addedItem.product_id] || null;
                 let productName = `Товар ID: ${addedItem.product_id}`;
                 let productCode = '';
                 let unitPrice = 0;
@@ -514,8 +493,8 @@
                     select.innerHTML = '<option value="">Выберите товар...</option>';
                     
                     data.data.forEach(product => {
-                        // Сохраняем данные товаров из селекта
-                        allProductsFromSelect[product.product_id] = product;
+                        // Сохраняем данные товара для использования при добавлении
+                        selectProductsData[product.product_id] = product;
                         
                         const displayName = product.product_name + 
                             (product.product_code ? ` (${product.product_code})` : '') +
@@ -589,8 +568,8 @@
                 changes.added.push({ product_id: select.value, quantity: qty });
             }
             
-            // Берем информацию о товаре из двух источников
-            const productInfo = productsDB[select.value] || allProductsFromSelect[select.value] || { product_name: `ID: ${select.value}` };
+            // Получаем информацию о товаре из selectProductsData
+            const productInfo = selectProductsData[select.value] || { product_name: `ID: ${select.value}` };
             showMessage(
                 `Товар "${productInfo.product_name}" (${qty} шт.) добавлен в чек`,
                 'success'
@@ -663,11 +642,10 @@
                         }, '*');
                     }
                     
-                    // Перезагружаем чек через 3 секунды (увеличили время)
+                    // Перезагружаем чек через 2 секунды
                     setTimeout(() => {
-                        console.log('🔄 Перезагружаем страницу...');
                         location.reload();
-                    }, 3000);
+                    }, 2000);
                 })
                 .catch(error => {
                     console.error('❌ Ошибка сохранения:', error);
