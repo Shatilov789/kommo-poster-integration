@@ -108,7 +108,30 @@
         .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
         .status-open { background: #fff3cd; color: #856404; }
         .status-closed { background: #d4edda; color: #155724; }
-        .removed-product { opacity: 0.6; text-decoration: line-through; background: #ffeaea !important; }
+        .removed-product { 
+            opacity: 0.6; 
+            text-decoration: line-through; 
+            background: #ffeaea !important; 
+            position: relative;
+        }
+        .removed-product::after {
+            content: 'УДАЛЕН';
+            position: absolute;
+            right: 120px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .removed-product .quantity,
+        .removed-product .btn-danger {
+            pointer-events: none;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -414,7 +437,13 @@
                 }
                 
                 const unitPrice = Math.round(totalPrice / quantity);
-                totalSum += parseInt(totalPrice);
+                
+                // Проверяем, помечен ли товар для удаления
+                const isMarkedForRemoval = changes.removed.some(r => r.product_id === product.product_id);
+                
+                if (!isMarkedForRemoval) {
+                    totalSum += parseInt(totalPrice);
+                }
                 
                 const productInfo = productsDB[product.product_id] || null;
                 let productName = `Товар ID: ${product.product_id}`;
@@ -425,16 +454,20 @@
                     productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
                 }
                 
+                const productClass = isMarkedForRemoval ? 'product removed-product' : 'product';
+                const removeButtonText = isMarkedForRemoval ? '↺' : '×';
+                const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${product.product_id}')` : `removeProduct('${product.product_id}')`;
+                
                 productsHtml += `
-                    <div class="product" data-id="${product.product_id}">
+                    <div class="${productClass}" data-id="${product.product_id}">
                         <div class="product-name">
                             <div>${productName}${productCode}</div>
                             <div class="product-id">ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
                         </div>
                         <input type="number" class="quantity" value="${quantity}" min="1" step="1"
-                               onchange="updateQuantity('${product.product_id}', this.value)">
+                               onchange="updateQuantity('${product.product_id}', this.value)" ${isMarkedForRemoval ? 'disabled' : ''}>
                         <div class="price">${formatPrice(totalPrice)}</div>
-                        <button class="btn btn-danger" onclick="removeProduct('${product.product_id}')">×</button>
+                        <button class="btn btn-danger" onclick="${removeButtonAction}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
                     </div>
                 `;
             });
@@ -526,21 +559,23 @@
             if (isAlreadyRemoved) return;
             
             changes.removed.push({ product_id: productId });
-            console.log('Удален товар:', productId);
+            console.log('Помечен для удаления товар:', productId);
             
-            // Сразу скрываем товар из интерфейса
-            const element = document.querySelector(`[data-id="${productId}"]`);
-            if (element) {
-                element.style.transition = 'opacity 0.3s ease';
-                element.style.opacity = '0';
-                
-                setTimeout(() => {
-                    // Перерисовываем чек без удаленного товара
-                    displayTransaction();
-                }, 300);
-            }
+            showMessage('Товар помечен для удаления (будет удален после сохранения)', 'success');
             
-            showMessage('Товар удален из чека', 'success');
+            // Перерисовываем чек с зачеркнутым товаром
+            displayTransaction();
+        }
+
+        // Новая функция для восстановления товара
+        function restoreProduct(productId) {
+            changes.removed = changes.removed.filter(item => item.product_id !== productId);
+            console.log('Восстановлен товар:', productId);
+            
+            showMessage('Товар восстановлен', 'success');
+            
+            // Перерисовываем чек
+            displayTransaction();
         }
 
         function addProduct() {
