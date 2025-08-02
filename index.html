@@ -176,8 +176,11 @@
                 <button class="btn btn-success" onclick="saveChanges()" id="saveBtn" style="margin-right: 10px;">
                     💾 Сохранить изменения
                 </button>
-                <button class="btn" onclick="refreshData()" style="background: #6c757d; color: white;">
+                <button class="btn" onclick="refreshData()" style="background: #6c757d; color: white; margin-right: 10px;">
                     🔄 Обновить данные
+                </button>
+                <button class="btn" onclick="clearLocalChanges()" style="background: #f39c12; color: white;" title="Очистить локальные изменения">
+                    🧹 Очистить изменения
                 </button>
             </div>
         </div>
@@ -514,6 +517,8 @@
                     productName = productInfo.product_name || productName;
                     productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
                     unitPrice = Math.round(productInfo.price * 100); // Цена из БД в копейках
+                } else {
+                    console.warn('⚠️ Товар не найден в базе данных:', addedItem.product_id);
                 }
                 
                 const totalPrice = unitPrice * addedItem.quantity;
@@ -528,7 +533,7 @@
                         <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
                                onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
                         <div class="price">${formatPrice(totalPrice)}</div>
-                        <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')">×</button>
+                        <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')" title="Удалить из списка добавления">×</button>
                     </div>
                 `;
             });
@@ -724,6 +729,16 @@
 
         function refreshData() {
             location.reload();
+        }
+
+        // Функция для очистки локальных изменений
+        function clearLocalChanges() {
+            if (confirm('Очистить все несохраненные изменения? Это действие нельзя отменить.')) {
+                changes = { added: [], modified: [], removed: [] };
+                console.log('🧹 Локальные изменения очищены');
+                showMessage('Все несохраненные изменения очищены', 'success');
+                displayTransaction();
+            }
         }
 
         // Инициализация
