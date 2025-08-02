@@ -423,6 +423,7 @@
                 console.log('📋 Чек загружен:', transaction);
                 
                 await loadProductsFromDB();
+                cleanupDuplicates(); // Автоматически очищаем дубликаты после загрузки
                 displayTransaction();
                 
             } catch (error) {
@@ -436,6 +437,26 @@
         // Отображение чека
         function displayTransaction() {
             if (!transaction) return;
+            
+            // Диагностика: проверяем, есть ли товары в changes.added, которых нет в реальном чеке
+            if (changes.added.length > 0) {
+                console.log('🔍 Текущие добавленные товары в changes.added:', changes.added);
+                
+                // Проверяем, есть ли эти товары в реальном чеке из Poster
+                const realProductIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
+                const phantomProducts = changes.added.filter(added => {
+                    const isInRealCheck = realProductIds.includes(added.product_id);
+                    if (isInRealCheck) {
+                        console.log(`⚠️ Товар ${added.product_id} есть и в changes.added и в реальном чеке - возможно дублирование`);
+                    }
+                    return !isInRealCheck;
+                });
+                
+                if (phantomProducts.length > 0) {
+                    console.warn('👻 Обнаружены "призрачные" товары (есть в изменениях, но нет в Poster):', phantomProducts);
+                    showMessage(`Обнаружены несохраненные товары: ${phantomProducts.length} шт. Нажмите "Очистить изменения" для удаления.`, 'warning');
+                }
+            }
             
             const status = transaction.status === '1' ? 'Открыт' : 'Закрыт';
             
@@ -451,7 +472,7 @@
             `;
             
             const products = transaction.products || [];
-            if (products.length === 0) {
+            if (products.length === 0 && changes.added.length === 0) {
                 document.getElementById('productsList').innerHTML = '<div class="product">В чеке нет товаров</div>';
                 return;
             }
@@ -507,6 +528,13 @@
             
             // Добавляем новые товары из изменений
             changes.added.forEach(addedItem => {
+                // Проверяем, нет ли этого товара уже в реальном чеке
+                const realProductIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
+                if (realProductIds.includes(addedItem.product_id)) {
+                    console.warn(`⚠️ Товар ${addedItem.product_id} уже есть в реальном чеке, пропускаем добавление в интерфейс`);
+                    return; // Пропускаем товар, который уже есть в чеке
+                }
+                
                 // Ищем информацию в productsDB или selectProductsData
                 const productInfo = productsDB[addedItem.product_id] || selectProductsData[addedItem.product_id] || null;
                 let productName = `Товар ID: ${addedItem.product_id}`;
@@ -737,6 +765,30 @@
                 changes = { added: [], modified: [], removed: [] };
                 console.log('🧹 Локальные изменения очищены');
                 showMessage('Все несохраненные изменения очищены', 'success');
+                displayTransaction();
+            }
+        }
+
+        // Функция автоматической очистки дубликатов
+        function cleanupDuplicates() {
+            if (!transaction || !transaction.products) return;
+            
+            const realProductIds = transaction.products.map(p => p.product_id);
+            const originalAddedCount = changes.added.length;
+            
+            // Удаляем из changes.added товары, которые уже есть в реальном чеке
+            changes.added = changes.added.filter(addedItem => {
+                const isDuplicate = realProductIds.includes(addedItem.product_id);
+                if (isDuplicate) {
+                    console.log(`🧹 Удаляем дубликат из changes.added: ${addedItem.product_id}`);
+                }
+                return !isDuplicate;
+            });
+            
+            if (originalAddedCount > changes.added.length) {
+                const removedCount = originalAddedCount - changes.added.length;
+                console.log(`✅ Очищено дубликатов: ${removedCount}`);
+                showMessage(`Автоматически удалено дубликатов: ${removedCount}`, 'success');
                 displayTransaction();
             }
         }
