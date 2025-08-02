@@ -299,18 +299,43 @@
         async function saveChangesAPI() {
             const promises = [];
             
-            // Добавление новых товаров - сразу с нужным количеством
+            // Добавление новых товаров
             for (const item of changes.added) {
                 console.log('➕ Добавляем товар:', item.product_id, 'количество:', item.quantity);
                 
-                const promise = apiRequest('transactions.addTransactionProduct', {
-                    spot_id: '1',
-                    spot_tablet_id: '1',
-                    transaction_id: transactionId,
-                    product_id: item.product_id,
-                    count: item.quantity.toString() // Добавляем сразу с нужным количеством
-                });
-                promises.push(promise);
+                if (item.quantity === 1) {
+                    // Если количество 1 - просто добавляем
+                    const promise = apiRequest('transactions.addTransactionProduct', {
+                        spot_id: '1',
+                        spot_tablet_id: '1',
+                        transaction_id: transactionId,
+                        product_id: item.product_id
+                    });
+                    promises.push(promise);
+                } else {
+                    // Если количество больше 1 - добавляем 1, потом меняем количество
+                    console.log(`📦 Добавляем товар ${item.product_id}, потом устанавливаем количество ${item.quantity}`);
+                    
+                    // Сначала добавляем товар
+                    const addPromise = apiRequest('transactions.addTransactionProduct', {
+                        spot_id: '1',
+                        spot_tablet_id: '1',
+                        transaction_id: transactionId,
+                        product_id: item.product_id
+                    }).then(() => {
+                        // Потом меняем количество
+                        console.log(`📝 Устанавливаем количество товара ${item.product_id} на ${item.quantity}`);
+                        return apiRequest('transactions.changeTransactionProductCount', {
+                            spot_id: '1',
+                            spot_tablet_id: '1',
+                            transaction_id: transactionId,
+                            product_id: item.product_id,
+                            count: item.quantity.toString()
+                        });
+                    });
+                    
+                    promises.push(addPromise);
+                }
             }
             
             // Изменение количества существующих товаров
