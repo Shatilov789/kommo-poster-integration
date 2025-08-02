@@ -12,21 +12,9 @@
             line-height: 1.4;
             overflow-x: hidden;
             color: #333;
-            font-size: 70%; /* Уменьшаем базовый размер шрифта на 30% */
+            font-size: 77%; /* Увеличиваем с 70% до 77% (70% + 10% = 77%) */
         }
         .container { max-width: 100%; padding: 20px; height: 100vh; overflow-y: auto; }
-        .info-header { 
-            background: white;
-            padding: 16px 20px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            font-size: 9.8px; /* 14px * 0.7 = 9.8px */
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #e1e5e9;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
         .card { 
             background: white; 
             border-radius: 8px; 
@@ -41,7 +29,7 @@
             background: #f8f9fa;
             border-radius: 8px 8px 0 0;
             color: #333;
-            font-size: 10.5px; /* 15px * 0.7 = 10.5px */
+            font-size: 11.55px; /* 10.5px * 1.1 = 11.55px */
         }
         .product { 
             display: flex; 
@@ -54,28 +42,28 @@
         .product:hover { background: #f8f9fa; }
         .product:last-child { border-bottom: none; }
         .product-name { flex: 1; font-weight: 500; color: #333; }
-        .product-name > div:first-child { font-size: 9.8px; margin-bottom: 4px; } /* 14px * 0.7 = 9.8px */
-        .product-id { font-size: 8.4px; color: #8b9bc1; margin-top: 2px; } /* 12px * 0.7 = 8.4px */
+        .product-name > div:first-child { font-size: 10.78px; margin-bottom: 4px; } /* 9.8px * 1.1 = 10.78px */
+        .product-id { font-size: 9.24px; color: #8b9bc1; margin-top: 2px; } /* 8.4px * 1.1 = 9.24px */
         .quantity { 
             width: 70px; padding: 8px; text-align: center; border: 1px solid #d1d9e0; 
-            border-radius: 6px; font-size: 9.8px; background: white; transition: border-color 0.2s; /* 14px * 0.7 = 9.8px */
+            border-radius: 6px; font-size: 10.78px; background: white; transition: border-color 0.2s; /* 9.8px * 1.1 = 10.78px */
         }
         .quantity:focus { outline: none; border-color: #3e5a6b; box-shadow: 0 0 0 2px rgba(62, 90, 107, 0.2); }
-        .price { width: 100px; text-align: right; color: #27ae60; font-weight: 600; font-size: 9.8px; } /* 14px * 0.7 = 9.8px */
+        .price { width: 100px; text-align: right; color: #27ae60; font-weight: 600; font-size: 10.78px; } /* 9.8px * 1.1 = 10.78px */
         .btn { 
             padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; 
-            font-size: 8.4px; font-weight: 500; transition: all 0.2s; /* 12px * 0.7 = 8.4px */
+            font-size: 9.24px; font-weight: 500; transition: all 0.2s; /* 8.4px * 1.1 = 9.24px */
         }
         .btn-danger { 
             background: #e74c3c; color: white; width: 32px; height: 32px;
             display: flex; align-items: center; justify-content: center; padding: 0;
         }
         .btn-danger:hover { background: #c0392b; transform: translateY(-1px); }
-        .btn-success { background: #3e5a6b; color: white; padding: 12px 24px; font-size: 9.8px; border-radius: 6px; } /* 14px * 0.7 = 9.8px */
+        .btn-success { background: #3e5a6b; color: white; padding: 12px 24px; font-size: 10.78px; border-radius: 6px; } /* 9.8px * 1.1 = 10.78px */
         .btn-success:hover { background: #2c4752; transform: translateY(-1px); }
         .btn-success:disabled { background: #bdc3c7; cursor: not-allowed; transform: none; }
         .total { 
-            text-align: right; padding: 16px 20px; font-size: 11.2px; font-weight: 600; /* 16px * 0.7 = 11.2px */
+            text-align: right; padding: 16px 20px; font-size: 12.32px; font-weight: 600; /* 11.2px * 1.1 = 12.32px */
             color: #27ae60; background: #f8f9fa; border-radius: 0 0 8px 8px; border-top: 1px solid #e1e5e9;
         }
         .loading { text-align: center; padding: 60px 20px; color: #8b9bc1; }
@@ -99,14 +87,14 @@
         .form-group { flex: 1; min-width: 200px; }
         .form-group label { 
             display: block; margin-bottom: 6px; font-weight: 500; 
-            font-size: 9.1px; color: #555; /* 13px * 0.7 = 9.1px */
+            font-size: 10.01px; color: #555; /* 9.1px * 1.1 = 10.01px */
         }
         .form-control { 
             width: 100%; padding: 10px 12px; border: 1px solid #d1d9e0; 
-            border-radius: 6px; font-size: 9.8px; background: white; transition: border-color 0.2s; /* 14px * 0.7 = 9.8px */
+            border-radius: 6px; font-size: 10.78px; background: white; transition: border-color 0.2s; /* 9.8px * 1.1 = 10.78px */
         }
         .form-control:focus { outline: none; border-color: #3e5a6b; box-shadow: 0 0 0 2px rgba(62, 90, 107, 0.2); }
-        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 8.4px; font-weight: 500; } /* 12px * 0.7 = 8.4px */
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 9.24px; font-weight: 500; } /* 8.4px * 1.1 = 9.24px */
         .status-open { background: #fff3cd; color: #856404; }
         .status-closed { background: #d4edda; color: #155724; }
         .removed-product { 
@@ -125,7 +113,7 @@
             color: white;
             padding: 2px 6px;
             border-radius: 3px;
-            font-size: 7px; /* 10px * 0.7 = 7px */
+            font-size: 7.7px; /* 7px * 1.1 = 7.7px */
             font-weight: bold;
         }
         .removed-product .quantity,
@@ -137,10 +125,6 @@
 </head>
 <body>
     <div class="container">
-        <div id="checkInfo" class="info-header">
-            <span>Загрузка информации о чеке...</span>
-        </div>
-
         <div id="loading" class="loading">
             <div class="spinner"></div>
             <p>Загрузка данных из Poster POS...</p>
@@ -458,19 +442,6 @@
                     showMessage(`Обнаружены несохраненные товары: ${phantomProducts.length} шт. Нажмите "Очистить изменения" для удаления.`, 'warning');
                 }
             }
-            
-            const status = transaction.status === '1' ? 'Открыт' : 'Закрыт';
-            
-            document.getElementById('checkInfo').innerHTML = `
-                <div>
-                    <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">Чек №${transaction.transaction_id}</div>
-                    <div style="font-size: 13px; color: #8b9bc1;">
-                        ${transaction.date_close_date || 'В обработке'} • 
-                        <span class="status-badge ${transaction.status === '1' ? 'status-open' : 'status-closed'}">${status}</span>
-                    </div>
-                </div>
-                <div style="color: #27ae60; font-weight: 600; font-size: 18px;">${formatPrice(transaction.sum)}</div>
-            `;
             
             const products = transaction.products || [];
             if (products.length === 0 && changes.added.length === 0) {
