@@ -304,6 +304,62 @@
             pointer-events: none;
             opacity: 0.5;
         }
+        
+        /* Стили для товаров к досборке */
+        .product.pending-collect {
+            background: #fff3cd !important;
+            border-left: 4px solid #ffc107 !important;
+            position: relative;
+        }
+        
+        .product.pending-collect::after {
+            content: 'К ДОСБОРКЕ';
+            position: absolute;
+            right: 160px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ffc107;
+            color: #856404;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 7.7px;
+            font-weight: bold;
+            z-index: 2;
+        }
+        
+        .collect-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            cursor: pointer;
+            transform: scale(1.2);
+            accent-color: #ffc107;
+        }
+        
+        .collect-checkbox:checked {
+            background-color: #ffc107;
+        }
+        
+        .collect-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 9.24px;
+            color: #856404;
+            cursor: pointer;
+            user-select: none;
+            margin-left: 10px;
+        }
+        
+        .collect-label:hover {
+            color: #533f04;
+        }
+        
+        .product-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -411,8 +467,11 @@
                 <button class="btn" onclick="refreshData()" style="background: #6c757d; color: white; margin-right: 10px;">
                     🔄 Обновить данные
                 </button>
-                <button class="btn" onclick="clearLocalChanges()" style="background: #f39c12; color: white;" title="Очистить локальные изменения">
+                <button class="btn" onclick="clearLocalChanges()" style="background: #f39c12; color: white; margin-right: 10px;" title="Очистить локальные изменения">
                     🧹 Очистить изменения
+                </button>
+                <button class="btn" onclick="clearPendingCollectItems()" style="background: #ffc107; color: #856404;" title="Очистить все пометки о досборке">
+                    🟡 Очистить досборку
                 </button>
             </div>
         </div>
@@ -437,6 +496,7 @@
         let searchTimeout = null; // Таймаут для поиска
         let currentFilter = 'all'; // Текущий фильтр поиска
         let changes = { added: [], modified: [], removed: [] };
+        let pendingCollectItems = new Set(); // Товары к досборке (сохраняется локально)
 
         console.log('🔍 Transaction ID:', transactionId);
         console.log('📡 API Base:', API_BASE);
@@ -747,6 +807,62 @@
             }
         }
 
+        // Функции для работы с досборкой
+        function togglePendingCollect(productId) {
+            if (pendingCollectItems.has(productId)) {
+                pendingCollectItems.delete(productId);
+                console.log('🟡 Товар убран из досборки:', productId);
+                showMessage('Товар убран из списка досборки', 'success');
+            } else {
+                pendingCollectItems.add(productId);
+                console.log('🟡 Товар добавлен в досборку:', productId);
+                showMessage('Товар помечен для досборки', 'success');
+            }
+            
+            // Сохраняем в localStorage для сохранения между сессиями
+            savePendingCollectItems();
+            
+            // Перерисовываем чек
+            displayTransaction();
+        }
+        
+        function savePendingCollectItems() {
+            try {
+                const data = {
+                    transactionId: transactionId,
+                    items: Array.from(pendingCollectItems),
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem(`poster_pending_collect_${transactionId}`, JSON.stringify(data));
+                console.log('💾 Список досборки сохранен:', data);
+            } catch (error) {
+                console.warn('⚠️ Не удалось сохранить список досборки:', error);
+            }
+        }
+        
+        function loadPendingCollectItems() {
+            try {
+                const saved = localStorage.getItem(`poster_pending_collect_${transactionId}`);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    pendingCollectItems = new Set(data.items || []);
+                    console.log('📂 Список досборки загружен:', Array.from(pendingCollectItems));
+                }
+            } catch (error) {
+                console.warn('⚠️ Не удалось загрузить список досборки:', error);
+                pendingCollectItems = new Set();
+            }
+        }
+        
+        function clearPendingCollectItems() {
+            if (confirm('Очистить все пометки о досборке? Это действие нельзя отменить.')) {
+                pendingCollectItems.clear();
+                savePendingCollectItems();
+                displayTransaction();
+                showMessage('Все пометки о досборке очищены', 'success');
+            }
+        }
+
         // Переключение фильтров
         function setSearchFilter(filter) {
             currentFilter = filter;
@@ -892,6 +1008,9 @@
                     loadAllProducts()
                 ]);
                 
+                // Загружаем сохраненные пометки досборки
+                loadPendingCollectItems();
+                
                 cleanupDuplicates();
                 displayTransaction();
                 
@@ -946,6 +1065,7 @@
                 const unitPrice = Math.round(totalPrice / quantity);
                 
                 const isMarkedForRemoval = changes.removed.some(r => r.product_id === product.product_id);
+                const isPendingCollect = pendingCollectItems.has(product.product_id);
                 
                 if (!isMarkedForRemoval) {
                     totalSum += parseInt(totalPrice);
@@ -960,20 +1080,37 @@
                     productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
                 }
                 
-                const productClass = isMarkedForRemoval ? 'product removed-product' : 'product';
+                let productClass = 'product';
+                if (isMarkedForRemoval) {
+                    productClass += ' removed-product';
+                } else if (isPendingCollect) {
+                    productClass += ' pending-collect';
+                }
+                
                 const removeButtonText = isMarkedForRemoval ? '↺' : '×';
                 const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${product.product_id}')` : `removeProduct('${product.product_id}')`;
                 
                 productsHtml += `
                     <div class="${productClass}" data-id="${product.product_id}">
+                        <label class="collect-label" ${isMarkedForRemoval ? 'style="pointer-events: none; opacity: 0.5;"' : ''}>
+                            <input type="checkbox" 
+                                   class="collect-checkbox" 
+                                   ${isPendingCollect ? 'checked' : ''}
+                                   onchange="togglePendingCollect('${product.product_id}')"
+                                   ${isMarkedForRemoval ? 'disabled' : ''}
+                                   title="Пометить для досборки">
+                            <span style="font-size: 7.7px;">К досборке</span>
+                        </label>
                         <div class="product-name">
                             <div>${productName}${productCode}</div>
                             <div class="product-id">ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
                         </div>
-                        <input type="number" class="quantity" value="${quantity}" min="1" step="1"
-                               onchange="updateQuantity('${product.product_id}', this.value)" ${isMarkedForRemoval ? 'disabled' : ''}>
-                        <div class="price">${formatPrice(totalPrice)}</div>
-                        <button class="btn btn-danger" onclick="${removeButtonAction}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
+                        <div class="product-controls">
+                            <input type="number" class="quantity" value="${quantity}" min="1" step="1"
+                                   onchange="updateQuantity('${product.product_id}', this.value)" ${isMarkedForRemoval ? 'disabled' : ''}>
+                            <div class="price">${formatPrice(totalPrice)}</div>
+                            <button class="btn btn-danger" onclick="${removeButtonAction}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
+                        </div>
                     </div>
                 `;
             });
@@ -1004,14 +1141,23 @@
                 
                 productsHtml += `
                     <div class="product" data-id="${addedItem.product_id}" style="background: #e8f5e8; border-left: 4px solid #28a745;">
+                        <label class="collect-label">
+                            <input type="checkbox" 
+                                   class="collect-checkbox" 
+                                   onchange="togglePendingCollect('${addedItem.product_id}')"
+                                   title="Пометить для досборки">
+                            <span style="font-size: 7.7px;">К досборке</span>
+                        </label>
                         <div class="product-name">
                             <div>${productName}${productCode} <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span></div>
                             <div class="product-id">ID: ${addedItem.product_id} • ${formatPrice(unitPrice)} за шт. × ${addedItem.quantity}</div>
                         </div>
-                        <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
-                               onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
-                        <div class="price">${formatPrice(totalPrice)}</div>
-                        <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')" title="Удалить из списка добавления">×</button>
+                        <div class="product-controls">
+                            <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
+                                   onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
+                            <div class="price">${formatPrice(totalPrice)}</div>
+                            <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')" title="Удалить из списка добавления">×</button>
+                        </div>
                     </div>
                 `;
             });
