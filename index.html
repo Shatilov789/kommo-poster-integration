@@ -328,11 +328,11 @@
         }
         
         .collect-checkbox {
-            width: 18px;
-            height: 18px;
-            margin-right: 10px;
+            width: 12px;
+            height: 12px;
+            margin-right: 8px;
             cursor: pointer;
-            transform: scale(1.2);
+            transform: scale(1);
             accent-color: #ffc107;
         }
         
@@ -343,16 +343,13 @@
         .collect-label {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 9.24px;
-            color: #856404;
             cursor: pointer;
             user-select: none;
-            margin-left: 10px;
+            margin-right: 8px;
         }
         
         .collect-label:hover {
-            color: #533f04;
+            opacity: 0.8;
         }
         
         .product-controls {
@@ -1099,7 +1096,6 @@
                                    onchange="togglePendingCollect('${product.product_id}')"
                                    ${isMarkedForRemoval ? 'disabled' : ''}
                                    title="Пометить для досборки">
-                            <span style="font-size: 7.7px;">К досборке</span>
                         </label>
                         <div class="product-name">
                             <div>${productName}${productCode}</div>
@@ -1146,7 +1142,6 @@
                                    class="collect-checkbox" 
                                    onchange="togglePendingCollect('${addedItem.product_id}')"
                                    title="Пометить для досборки">
-                            <span style="font-size: 7.7px;">К досборке</span>
                         </label>
                         <div class="product-name">
                             <div>${productName}${productCode} <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span></div>
