@@ -846,8 +846,13 @@
                 savePendingCollectItems();
                 displayTransaction();
                 showMessage('Все пометки о досборке очищены', 'success');
+                console.log('🧹 Все пометки досборки очищены');
             }
         }
+
+        // Делаем функции глобальными для доступа из HTML
+        window.togglePendingCollect = togglePendingCollect;
+        window.clearPendingCollectItems = clearPendingCollectItems;
 
         // Переключение фильтров
         function setSearchFilter(filter) {
@@ -1137,6 +1142,8 @@
                             <div class="product-id">ID: ${addedItem.product_id} • ${formatPrice(unitPrice)} за шт. × ${addedItem.quantity}</div>
                         </div>
                         <div class="product-controls">
+                            <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
+                                   onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
                             <div class="price">${formatPrice(totalPrice)}</div>
                             <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')" title="Удалить из списка добавления">×</button>
                         </div>
