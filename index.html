@@ -346,74 +346,6 @@
             align-items: center;
             gap: 10px;
         }
-        
-        /* Стили для кастомного модального окна */
-        .custom-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            font-size: 14px;
-        }
-        
-        .custom-modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-            text-align: center;
-        }
-        
-        .custom-modal-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .custom-modal-text {
-            margin-bottom: 20px;
-            color: #666;
-        }
-        
-        .custom-modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .modal-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-        
-        .modal-btn-confirm {
-            background: #ffc107;
-            color: #856404;
-        }
-        
-        .modal-btn-confirm:hover {
-            background: #e0a800;
-        }
-        
-        .modal-btn-cancel {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .modal-btn-cancel:hover {
-            background: #5a6268;
-        }
     </style>
 </head>
 <body>
@@ -523,9 +455,6 @@
                 </button>
                 <button class="btn" onclick="clearLocalChanges()" style="background: #f39c12; color: white; margin-right: 10px;" title="Очистить локальные изменения">
                     🧹 Очистить изменения
-                </button>
-                <button class="btn" onclick="clearPendingCollectItems()" style="background: #ffc107; color: #856404;" title="Очистить все пометки о досборке">
-                    🟡 Очистить досборку
                 </button>
             </div>
         </div>
@@ -914,14 +843,8 @@
                 savePendingCollectItems();
                 displayTransaction();
                 showMessage('Все пометки о досборке очищены', 'success');
-                console.log('🧹 Все пометки досборки очищены');
             }
         }
-
-        // Делаем функции глобальными для доступа из HTML
-        window.togglePendingCollect = togglePendingCollect;
-        window.clearPendingCollectItems = clearPendingCollectItems;
-        window.clearLocalChanges = clearLocalChanges;
 
         // Переключение фильтров
         function setSearchFilter(filter) {
@@ -1331,8 +1254,17 @@
             location.reload();
         }
 
-        // Переключение фильтров
-        function setSearchFilter(filter) {
+        function clearLocalChanges() {
+            if (confirm('Очистить все несохраненные изменения? Это действие нельзя отменить.')) {
+                changes = { added: [], modified: [], removed: [] };
+                selectedProduct = null;
+                document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
+                document.getElementById('quickAddBtn').disabled = true;
+                console.log('🧹 Локальные изменения очищены');
+                showMessage('Все несохраненные изменения очищены', 'success');
+                displayTransaction();
+            }
+        }
 
         function cleanupDuplicates() {
             if (!transaction || !transaction.products) return;
