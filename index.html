@@ -1023,66 +1023,70 @@
         
         function setupDragAndDrop() {
             const productsList = document.getElementById('productsList');
+            if (!productsList) return;
             
-            // Делаем элементы перетягиваемыми
-            productsList.addEventListener('dragstart', function(e) {
-                if (e.target.closest('.product')) {
-                    draggedElement = e.target.closest('.product');
-                    draggedElement.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/html', draggedElement.outerHTML);
-                    showSortIndicator('Перетягивание...');
-                }
-            });
+            // Удаляем старые обработчики для предотвращения утечек памяти
+            productsList.removeEventListener('dragstart', handleDragStart);
+            productsList.removeEventListener('dragend', handleDragEnd);
+            productsList.removeEventListener('dragover', handleDragOver);
+            productsList.removeEventListener('drop', handleDrop);
             
-            productsList.addEventListener('dragend', function(e) {
-                if (draggedElement) {
-                    draggedElement.classList.remove('dragging');
-                    draggedElement = null;
-                }
-                // Убираем все индикаторы
-                document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
-            });
+            // Добавляем новые обработчики
+            productsList.addEventListener('dragstart', handleDragStart);
+            productsList.addEventListener('dragend', handleDragEnd);
+            productsList.addEventListener('dragover', handleDragOver);
+            productsList.addEventListener('drop', handleDrop);
+        }
+        
+        function handleDragStart(e) {
+            if (e.target.closest('.product')) {
+                draggedElement = e.target.closest('.product');
+                draggedElement.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', ''); // Минимальные данные
+                showSortIndicator('Перетягивание...');
+            }
+        }
+        
+        function handleDragEnd(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+            document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
             
-            productsList.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                
-                const afterElement = getDragAfterElement(productsList, e.clientY);
-                const dragging = document.querySelector('.dragging');
-                
-                // Убираем старые индикаторы
-                document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
-                
+            const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
+            document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
+            
+            if (afterElement) {
+                afterElement.classList.add('drag-over');
+            }
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            
+            const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
+            const dragging = document.querySelector('.dragging');
+            
+            if (dragging) {
                 if (afterElement == null) {
-                    productsList.appendChild(dragging);
+                    e.currentTarget.appendChild(dragging);
                 } else {
-                    afterElement.classList.add('drag-over');
+                    e.currentTarget.insertBefore(dragging, afterElement);
                 }
-            });
+                
+                updateProductOrder();
+                saveProductOrder();
+                showSortIndicator('Позиция изменена');
+            }
             
-            productsList.addEventListener('drop', function(e) {
-                e.preventDefault();
-                
-                const afterElement = getDragAfterElement(productsList, e.clientY);
-                const dragging = document.querySelector('.dragging');
-                
-                if (dragging) {
-                    if (afterElement == null) {
-                        productsList.appendChild(dragging);
-                    } else {
-                        productsList.insertBefore(dragging, afterElement);
-                    }
-                    
-                    // Обновляем порядок
-                    updateProductOrder();
-                    saveProductOrder();
-                    showSortIndicator('Позиция изменена');
-                }
-                
-                // Убираем индикаторы
-                document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
-            });
+            document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
         }
         
         function getDragAfterElement(container, y) {
@@ -1270,12 +1274,12 @@
                 console.log('📋 Чек загружен:', transaction);
                 
                 // Загружаем товары для чека и все товары для поиска параллельно
-                await Promise.all([
+                const [productsLoaded, allProductsLoaded] = await Promise.allSettled([
                     loadProductsFromDB(),
                     loadAllProducts()
                 ]);
                 
-                // Загружаем сохраненные пометки досборки и порядок товаров
+                // Быстрая загрузка настроек
                 loadPendingCollectItems();
                 loadProductOrder();
                 
@@ -1441,8 +1445,10 @@
             document.getElementById('totalSum').textContent = formatPrice(totalSum);
             document.getElementById('content').style.display = 'block';
             
-            // Настраиваем drag & drop после отрисовки
-            setupDragAndDrop();
+            // Настраиваем drag & drop только если есть товары
+            if (productsHtml && !productsHtml.includes('В чеке нет товаров')) {
+                setTimeout(() => setupDragAndDrop(), 0); // Асинхронно
+            }
         }
 
         // Функции изменения товаров
