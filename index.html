@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор чеков Poster POS</title>
+    <title>Редактор чеков Poster POS - Улучшенный поиск</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -37,14 +37,9 @@
             gap: 15px; 
             padding: 16px 20px; 
             border-bottom: 1px solid #f0f0f0; 
-            transition: all 0.2s;
-            cursor: move;
-            user-select: none;
+            transition: background 0.2s;
         }
-        .product:hover { 
-            background: #f8f9fa; 
-            transform: translateY(-1px);
-        }
+        .product:hover { background: #f8f9fa; }
         .product:last-child { border-bottom: none; }
         .product-name { flex: 1; font-weight: 500; color: #333; }
         .product-name > div:first-child { font-size: 10.78px; margin-bottom: 4px; }
@@ -86,10 +81,239 @@
             margin: 15px 0; border: 1px solid #c3e6cb; font-size: 14px;
         }
         
+        /* Новые стили для улучшенного поиска */
+        .search-form { 
+            padding: 20px; background: #f8f9fa; border-radius: 0 0 8px 8px;
+        }
+        
+        .search-input-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .search-input {
+            width: 100%; 
+            padding: 12px 45px 12px 15px; 
+            border: 2px solid #d1d9e0; 
+            border-radius: 8px; 
+            font-size: 11.55px; 
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            outline: none; 
+            border-color: #3e5a6b; 
+            box-shadow: 0 0 0 3px rgba(62, 90, 107, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8b9bc1;
+            font-size: 16px;
+            pointer-events: none;
+        }
+        
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d9e0;
+            background: white;
+            border-radius: 20px;
+            font-size: 9.24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #6c757d;
+        }
+        
+        .filter-btn.active {
+            background: #3e5a6b;
+            color: white;
+            border-color: #3e5a6b;
+        }
+        
+        .filter-btn:hover {
+            border-color: #3e5a6b;
+            transform: translateY(-1px);
+        }
+        
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: white;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .search-results.show {
+            display: block;
+        }
+        
+        .search-result-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-info {
+            flex: 1;
+        }
+        
+        .search-result-name {
+            font-weight: 500;
+            font-size: 10.78px;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        
+        .search-result-details {
+            font-size: 9.24px;
+            color: #8b9bc1;
+        }
+        
+        .search-result-price {
+            font-weight: 600;
+            color: #27ae60;
+            font-size: 10.78px;
+        }
+        
+        .search-no-results {
+            padding: 20px;
+            text-align: center;
+            color: #8b9bc1;
+            font-size: 10.78px;
+        }
+        
+        .quick-add-section {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        
+        .quantity-input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 6px;
+            font-size: 10.78px;
+            text-align: center;
+        }
+        
+        .quantity-input:focus {
+            outline: none;
+            border-color: #3e5a6b;
+            box-shadow: 0 0 0 2px rgba(62, 90, 107, 0.2);
+        }
+        
+        .search-stats {
+            font-size: 9.24px;
+            color: #8b9bc1;
+            margin-bottom: 10px;
+            padding: 0 15px;
+        }
+        
+        .barcode-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .barcode-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 6px;
+            font-size: 10.78px;
+            background: white;
+        }
+        
+        .barcode-input:focus {
+            outline: none;
+            border-color: #3e5a6b;
+            box-shadow: 0 0 0 2px rgba(62, 90, 107, 0.2);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 9.24px;
+            transition: all 0.2s;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        /* Стили для выделения найденного текста */
+        .highlight {
+            background: #fff3cd;
+            color: #856404;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        
+        .removed-product { 
+            opacity: 0.6; 
+            text-decoration: line-through; 
+            background: #ffeaea !important; 
+            position: relative;
+        }
+        .removed-product::after {
+            content: 'УДАЛЕН';
+            position: absolute;
+            right: 120px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e74c3c;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 7.7px;
+            font-weight: bold;
+        }
+        .removed-product .quantity,
+        .removed-product .btn-danger {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+        
         /* Стили для товаров к досборке */
         .product.pending-collect {
             background: #fff3cd !important;
             border-left: 4px solid #ffc107 !important;
+            position: relative;
+        }
+        
+        .product.pending-collect::after {
+            display: none;
         }
         
         .collect-checkbox {
@@ -97,7 +321,12 @@
             height: 12px;
             margin-right: 8px;
             cursor: pointer;
+            transform: scale(1);
             accent-color: #ffc107;
+        }
+        
+        .collect-checkbox:checked {
+            background-color: #ffc107;
         }
         
         .collect-label {
@@ -116,129 +345,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-        
-        .removed-product { 
-            opacity: 0.6; 
-            text-decoration: line-through; 
-            background: #ffeaea !important; 
-            position: relative;
-        }
-        
-        .removed-product::after {
-            content: 'УДАЛЕН';
-            position: absolute;
-            right: 120px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #e74c3c;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 7.7px;
-            font-weight: bold;
-        }
-        
-        .removed-product .quantity,
-        .removed-product .btn-danger {
-            pointer-events: none;
-            opacity: 0.5;
-        }
-
-        /* Drag & Drop стили */
-        .drag-handle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
-            color: #8b9bc1;
-            cursor: grab;
-            font-size: 14px;
-            margin-right: 8px;
-        }
-        
-        .drag-handle:hover {
-            color: #3e5a6b;
-        }
-        
-        .product.dragging {
-            opacity: 0.5;
-            transform: rotate(2deg);
-            z-index: 1000;
-        }
-        
-        .product.drag-over {
-            border-top: 3px solid #3e5a6b;
-            margin-top: 3px;
-        }
-        
-        /* Кастомное модальное окно */
-        .custom-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            font-size: 14px;
-        }
-        
-        .custom-modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
-            text-align: center;
-        }
-        
-        .custom-modal-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        .custom-modal-text {
-            margin-bottom: 20px;
-            color: #666;
-        }
-        
-        .custom-modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-        
-        .modal-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-        
-        .modal-btn-confirm {
-            background: #ffc107;
-            color: #856404;
-        }
-        
-        .modal-btn-confirm:hover {
-            background: #e0a800;
-        }
-        
-        .modal-btn-cancel {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .modal-btn-cancel:hover {
-            background: #5a6268;
         }
     </style>
 </head>
@@ -259,6 +365,87 @@
                 <div class="total">Итого: <span id="totalSum">0.00 ₴</span></div>
             </div>
 
+            <div class="card">
+                <div class="card-header">🔍 Поиск и добавление товаров</div>
+                <div class="search-form">
+                    <!-- Поиск по названию/коду -->
+                    <div class="search-input-container">
+                        <input type="text" 
+                               class="search-input" 
+                               id="productSearch" 
+                               placeholder="Поиск по названию, коду товара или штрихкоду..."
+                               autocomplete="off">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    
+                    <!-- Фильтры поиска -->
+                    <div class="search-filters">
+                        <button class="filter-btn active" data-filter="all">Все товары</button>
+                        <button class="filter-btn" data-filter="name">По названию</button>
+                        <button class="filter-btn" data-filter="code">По коду</button>
+                        <button class="filter-btn" data-filter="barcode">По штрихкоду</button>
+                        <button class="filter-btn" data-filter="price">По цене</button>
+                    </div>
+                    
+                    <!-- Поиск по штрихкоду -->
+                    <div class="barcode-input-group">
+                        <input type="text" 
+                               class="barcode-input" 
+                               id="barcodeSearch" 
+                               placeholder="Сканируйте или введите штрихкод...">
+                        <button class="btn-secondary" onclick="searchByBarcode()">
+                            📷 Найти по штрихкоду
+                        </button>
+                    </div>
+                    
+                    <!-- Результаты поиска -->
+                    <div class="search-results" id="searchResults">
+                        <div class="search-stats" id="searchStats"></div>
+                        <div id="searchResultsList"></div>
+                    </div>
+                    
+                    <!-- Быстрое добавление -->
+                    <div class="quick-add-section">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 10.01px; color: #555;">
+                                Выбранный товар:
+                            </label>
+                            <div id="selectedProductInfo" style="
+                                padding: 10px 12px; 
+                                background: #e8f5e8; 
+                                border: 1px solid #c3e6cb; 
+                                border-radius: 6px; 
+                                font-size: 10.78px;
+                                color: #155724;
+                                min-height: 38px;
+                                display: flex;
+                                align-items: center;
+                            ">
+                                Товар не выбран
+                            </div>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 10.01px; color: #555;">
+                                Количество:
+                            </label>
+                            <input type="number" 
+                                   class="quantity-input" 
+                                   id="quickAddQuantity" 
+                                   value="1" 
+                                   min="1" 
+                                   max="999">
+                        </div>
+                        <button class="btn btn-success" 
+                                onclick="quickAddProduct()" 
+                                id="quickAddBtn" 
+                                disabled
+                                style="margin-top: 22px;">
+                            ➕ Добавить
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
                 <button class="btn btn-success" onclick="saveChanges()" id="saveBtn" style="margin-right: 10px;">
                     💾 Сохранить изменения
@@ -269,15 +456,12 @@
                 <button class="btn" onclick="clearLocalChanges()" style="background: #f39c12; color: white; margin-right: 10px;" title="Очистить локальные изменения">
                     🧹 Очистить изменения
                 </button>
-                <button class="btn" onclick="clearPendingCollectItems()" style="background: #ffc107; color: #856404;" title="Очистить все пометки о досборке">
-                    🟡 Очистить досборку
-                </button>
             </div>
         </div>
     </div>
 
     <script>
-        console.log('🎯 Загрузка редактора чеков');
+        console.log('🎯 Загрузка редактора чеков с улучшенным поиском');
         
         // Конфигурация API
         const API_BASE = 'http://localhost:8080/api-proxy.php';
@@ -290,12 +474,16 @@
         // Глобальные переменные
         let transaction = null;
         let productsDB = {};
+        let allProducts = []; // Все товары для поиска
+        let selectedProduct = null; // Выбранный товар для добавления
+        let searchTimeout = null; // Таймаут для поиска
+        let currentFilter = 'all'; // Текущий фильтр поиска
         let changes = { added: [], modified: [], removed: [] };
-        let pendingCollectItems = new Set();
-        let productOrder = [];
-        let draggedElement = null;
+        let pendingCollectItems = new Set(); // Товары к досборке (сохраняется локально)
 
         console.log('🔍 Transaction ID:', transactionId);
+        console.log('📡 API Base:', API_BASE);
+        console.log('🗄️ Products API:', PRODUCTS_API);
 
         // Форматирование цены
         function formatPrice(kopecks) {
@@ -329,46 +517,6 @@
             }
             
             console.log(`📢 ${type.toUpperCase()}: ${message}`);
-        }
-
-        // Кастомное модальное окно
-        function showConfirmModal(title, message, onConfirm, onCancel) {
-            const existingModal = document.querySelector('.custom-modal');
-            if (existingModal) {
-                existingModal.remove();
-            }
-            
-            const modal = document.createElement('div');
-            modal.className = 'custom-modal';
-            modal.innerHTML = `
-                <div class="custom-modal-content">
-                    <div class="custom-modal-title">${title}</div>
-                    <div class="custom-modal-text">${message}</div>
-                    <div class="custom-modal-buttons">
-                        <button class="modal-btn modal-btn-confirm" id="confirmBtn">Да, очистить</button>
-                        <button class="modal-btn modal-btn-cancel" id="cancelBtn">Отмена</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
-            
-            document.getElementById('confirmBtn').onclick = function() {
-                modal.remove();
-                if (onConfirm) onConfirm();
-            };
-            
-            document.getElementById('cancelBtn').onclick = function() {
-                modal.remove();
-                if (onCancel) onCancel();
-            };
-            
-            modal.onclick = function(e) {
-                if (e.target === modal) {
-                    modal.remove();
-                    if (onCancel) onCancel();
-                }
-            };
         }
 
         // API запрос
@@ -421,6 +569,227 @@
             }
         }
 
+        // Загрузка всех товаров для поиска
+        async function loadAllProducts() {
+            try {
+                console.log('📦 Загружаем все товары для поиска...');
+                
+                const response = await fetch(`${PRODUCTS_API}&path=products&limit=1000`);
+                if (!response.ok) throw new Error(`Products API error: ${response.status}`);
+                
+                const data = await response.json();
+                console.log('📋 Ответ от API товаров:', data);
+                
+                if (data.success && data.data) {
+                    allProducts = data.data;
+                    console.log('✅ Загружено товаров для поиска:', allProducts.length);
+                    
+                    // Обновляем счетчик
+                    updateSearchStats();
+                }
+            } catch (error) {
+                console.warn('⚠️ Ошибка загрузки товаров:', error.message);
+                showMessage(`Не удалось загрузить товары для поиска: ${error.message}`, 'warning');
+                allProducts = [];
+            }
+        }
+
+        // Поиск товаров
+        function searchProducts(query) {
+            if (!query || query.length < 2) {
+                hideSearchResults();
+                return;
+            }
+            
+            query = query.toLowerCase().trim();
+            let results = [];
+            
+            // Поиск в зависимости от выбранного фильтра
+            results = allProducts.filter(product => {
+                switch (currentFilter) {
+                    case 'name':
+                        return product.product_name && product.product_name.toLowerCase().includes(query);
+                    case 'code':
+                        return product.product_code && product.product_code.toLowerCase().includes(query);
+                    case 'barcode':
+                        return product.barcode && product.barcode.toLowerCase().includes(query);
+                    case 'price':
+                        const price = product.price ? product.price.toString() : '';
+                        return price.includes(query);
+                    default: // 'all'
+                        return (product.product_name && product.product_name.toLowerCase().includes(query)) ||
+                               (product.product_code && product.product_code.toLowerCase().includes(query)) ||
+                               (product.barcode && product.barcode.toLowerCase().includes(query)) ||
+                               (product.product_id && product.product_id.includes(query));
+                }
+            });
+            
+            // Сортируем результаты по релевантности
+            results.sort((a, b) => {
+                const aName = (a.product_name || '').toLowerCase();
+                const bName = (b.product_name || '').toLowerCase();
+                
+                // Приоритет точным совпадениям в начале
+                const aStartsWith = aName.startsWith(query);
+                const bStartsWith = bName.startsWith(query);
+                
+                if (aStartsWith && !bStartsWith) return -1;
+                if (!aStartsWith && bStartsWith) return 1;
+                
+                return aName.localeCompare(bName);
+            });
+            
+            // Ограничиваем результаты
+            results = results.slice(0, 50);
+            
+            displaySearchResults(results, query);
+        }
+
+        // Отображение результатов поиска
+        function displaySearchResults(results, query) {
+            const resultsContainer = document.getElementById('searchResults');
+            const statsContainer = document.getElementById('searchStats');
+            const listContainer = document.getElementById('searchResultsList');
+            
+            if (results.length === 0) {
+                statsContainer.textContent = 'Товары не найдены';
+                listContainer.innerHTML = '<div class="search-no-results">Попробуйте изменить поисковый запрос или выбрать другой фильтр</div>';
+            } else {
+                statsContainer.textContent = `Найдено товаров: ${results.length}`;
+                
+                let html = '';
+                results.forEach(product => {
+                    const name = highlightMatch(product.product_name || `ID: ${product.product_id}`, query);
+                    const code = product.product_code ? ` • Код: ${highlightMatch(product.product_code, query)}` : '';
+                    const barcode = product.barcode ? ` • Штрихкод: ${highlightMatch(product.barcode, query)}` : '';
+                    const price = formatPrice(product.price * 100);
+                    
+                    html += `
+                        <div class="search-result-item" onclick="selectProduct('${product.product_id}')">
+                            <div class="search-result-info">
+                                <div class="search-result-name">${name}</div>
+                                <div class="search-result-details">ID: ${product.product_id}${code}${barcode}</div>
+                            </div>
+                            <div class="search-result-price">${price}</div>
+                        </div>
+                    `;
+                });
+                
+                listContainer.innerHTML = html;
+            }
+            
+            resultsContainer.classList.add('show');
+        }
+
+        // Выделение найденного текста
+        function highlightMatch(text, query) {
+            if (!text || !query) return text;
+            
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // Скрытие результатов поиска
+        function hideSearchResults() {
+            document.getElementById('searchResults').classList.remove('show');
+        }
+
+        // Выбор товара из результатов поиска
+        function selectProduct(productId) {
+            const product = allProducts.find(p => p.product_id === productId);
+            if (!product) return;
+            
+            selectedProduct = product;
+            
+            // Обновляем информацию о выбранном товаре
+            const infoContainer = document.getElementById('selectedProductInfo');
+            const code = product.product_code ? ` (${product.product_code})` : '';
+            const price = formatPrice(product.price * 100);
+            
+            infoContainer.innerHTML = `
+                <strong>${product.product_name || `ID: ${product.product_id}`}${code}</strong><br>
+                <small style="color: #6c757d;">ID: ${product.product_id} • Цена: ${price}</small>
+            `;
+            
+            // Активируем кнопку добавления
+            document.getElementById('quickAddBtn').disabled = false;
+            
+            // Скрываем результаты поиска
+            hideSearchResults();
+            
+            // Очищаем поле поиска
+            document.getElementById('productSearch').value = '';
+            
+            console.log('✅ Выбран товар:', product);
+        }
+
+        // Быстрое добавление товара
+        function quickAddProduct() {
+            if (!selectedProduct) {
+                showMessage('Выберите товар для добавления', 'warning');
+                return;
+            }
+            
+            const quantityInput = document.getElementById('quickAddQuantity');
+            const qty = parseInt(quantityInput.value);
+            
+            if (qty < 1) {
+                showMessage('Количество должно быть больше 0', 'warning');
+                return;
+            }
+            
+            // Проверяем, не добавлен ли уже этот товар
+            const existingAdded = changes.added.find(item => item.product_id === selectedProduct.product_id);
+            if (existingAdded) {
+                existingAdded.quantity += qty;
+            } else {
+                changes.added.push({ product_id: selectedProduct.product_id, quantity: qty });
+            }
+            
+            showMessage(
+                `Товар "${selectedProduct.product_name}" (${qty} шт.) добавлен в чек`,
+                'success'
+            );
+            
+            // Сброс выбранного товара
+            selectedProduct = null;
+            document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
+            document.getElementById('quickAddBtn').disabled = true;
+            quantityInput.value = 1;
+            
+            // Перерисовываем чек
+            displayTransaction();
+        }
+
+        // Поиск по штрихкоду
+        function searchByBarcode() {
+            const barcodeInput = document.getElementById('barcodeSearch');
+            const barcode = barcodeInput.value.trim();
+            
+            if (!barcode) {
+                showMessage('Введите штрихкод для поиска', 'warning');
+                return;
+            }
+            
+            const product = allProducts.find(p => p.barcode === barcode);
+            
+            if (product) {
+                selectProduct(product.product_id);
+                barcodeInput.value = '';
+                showMessage(`Товар найден по штрихкоду: ${product.product_name}`, 'success');
+            } else {
+                showMessage('Товар с таким штрихкодом не найден', 'warning');
+            }
+        }
+
+        // Обновление статистики поиска
+        function updateSearchStats() {
+            const statsContainer = document.getElementById('searchStats');
+            if (statsContainer && allProducts.length > 0) {
+                statsContainer.textContent = `Доступно товаров для поиска: ${allProducts.length}`;
+            }
+        }
+
         // Функции для работы с досборкой
         function togglePendingCollect(productId) {
             if (pendingCollectItems.has(productId)) {
@@ -433,7 +802,10 @@
                 showMessage('Товар помечен для досборки', 'success');
             }
             
+            // Сохраняем в localStorage для сохранения между сессиями
             savePendingCollectItems();
+            
+            // Перерисовываем чек
             displayTransaction();
         }
         
@@ -466,119 +838,38 @@
         }
         
         function clearPendingCollectItems() {
-            showConfirmModal(
-                'Очистить досборку',
-                'Очистить все пометки о досборке? Это действие нельзя отменить.',
-                function() {
-                    pendingCollectItems.clear();
-                    savePendingCollectItems();
-                    displayTransaction();
-                    showMessage('Все пометки о досборке очищены', 'success');
-                    console.log('🧹 Все пометки досборки очищены');
-                },
-                function() {
-                    console.log('❌ Очистка досборки отменена');
-                }
-            );
-        }
-
-        // Функции для сортировки (простые)
-        function saveProductOrder() {
-            try {
-                const orderData = {
-                    transactionId: transactionId,
-                    order: productOrder,
-                    timestamp: new Date().toISOString()
-                };
-                localStorage.setItem(`poster_product_order_${transactionId}`, JSON.stringify(orderData));
-                console.log('💾 Порядок товаров сохранен:', productOrder);
-            } catch (error) {
-                console.warn('⚠️ Не удалось сохранить порядок товаров:', error);
-            }
-        }
-        
-        function loadProductOrder() {
-            try {
-                const saved = localStorage.getItem(`poster_product_order_${transactionId}`);
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    productOrder = data.order || [];
-                    console.log('📂 Порядок товаров загружен:', productOrder);
-                }
-            } catch (error) {
-                console.warn('⚠️ Не удалось загрузить порядок товаров:', error);
-                productOrder = [];
+            if (confirm('Очистить все пометки о досборке? Это действие нельзя отменить.')) {
+                pendingCollectItems.clear();
+                savePendingCollectItems();
+                displayTransaction();
+                showMessage('Все пометки о досборке очищены', 'success');
             }
         }
 
-        // Простой drag & drop
-        function setupDragAndDrop() {
-            const productsList = document.getElementById('productsList');
-            if (!productsList) return;
+        // Переключение фильтров
+        function setSearchFilter(filter) {
+            currentFilter = filter;
             
-            productsList.addEventListener('dragstart', function(e) {
-                if (e.target.closest('.product')) {
-                    draggedElement = e.target.closest('.product');
-                    draggedElement.classList.add('dragging');
-                }
+            // Обновляем активные кнопки
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
             
-            productsList.addEventListener('dragend', function(e) {
-                if (draggedElement) {
-                    draggedElement.classList.remove('dragging');
-                }
-                document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
-            });
+            // Повторяем поиск с новым фильтром
+            const query = document.getElementById('productSearch').value;
+            if (query.length >= 2) {
+                searchProducts(query);
+            }
             
-            productsList.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                const afterElement = getDragAfterElement(productsList, e.clientY);
-                document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
-                if (afterElement) {
-                    afterElement.classList.add('drag-over');
-                }
-            });
-            
-            productsList.addEventListener('drop', function(e) {
-                e.preventDefault();
-                const afterElement = getDragAfterElement(productsList, e.clientY);
-                const dragging = document.querySelector('.dragging');
-                
-                if (dragging && afterElement) {
-                    productsList.insertBefore(dragging, afterElement);
-                    updateProductOrder();
-                    saveProductOrder();
-                    showMessage('Порядок изменен', 'success');
-                }
-                
-                document.querySelectorAll('.product').forEach(p => p.classList.remove('drag-over'));
-            });
-        }
-        
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('.product:not(.dragging)')];
-            
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-        
-        function updateProductOrder() {
-            const products = document.querySelectorAll('.product[data-id]');
-            productOrder = Array.from(products).map(product => product.dataset.id);
+            console.log('🔍 Фильтр поиска изменен на:', filter);
         }
 
         // Реальное сохранение через Poster API
         async function saveChangesAPI() {
             const promises = [];
             
+            // Добавление новых товаров
             for (const item of changes.added) {
                 console.log('➕ Добавляем товар:', item.product_id, 'количество:', item.quantity);
                 
@@ -591,12 +882,15 @@
                     });
                     promises.push(promise);
                 } else {
+                    console.log(`📦 Добавляем товар ${item.product_id}, потом устанавливаем количество ${item.quantity}`);
+                    
                     const addPromise = apiRequest('transactions.addTransactionProduct', {
                         spot_id: '1',
                         spot_tablet_id: '1',
                         transaction_id: transactionId,
                         product_id: item.product_id
                     }).then(() => {
+                        console.log(`📝 Устанавливаем количество товара ${item.product_id} на ${item.quantity}`);
                         return apiRequest('transactions.changeTransactionProductCount', {
                             spot_id: '1',
                             spot_tablet_id: '1',
@@ -610,6 +904,7 @@
                 }
             }
             
+            // Изменение количества существующих товаров
             for (const item of changes.modified) {
                 console.log('📝 Изменяем количество товара:', item.product_id, 'на:', item.quantity);
                 
@@ -623,6 +918,7 @@
                 promises.push(promise);
             }
             
+            // Удаление товаров
             for (const item of changes.removed) {
                 console.log('❌ Удаляем товар:', item.product_id);
                 
@@ -635,6 +931,7 @@
                 promises.push(promise);
             }
             
+            // Выполняем все операции параллельно
             if (promises.length > 0) {
                 console.log(`🚀 Выполняем ${promises.length} операций с чеком...`);
                 await Promise.all(promises);
@@ -642,7 +939,7 @@
             }
         }
 
-        // Загрузка товаров из БД
+        // Загрузка товаров из БД для текущего чека
         async function loadProductsFromDB() {
             try {
                 console.log('📦 Загружаем товары из БД через прокси...');
@@ -688,9 +985,15 @@
                 transaction = data.response[0];
                 console.log('📋 Чек загружен:', transaction);
                 
-                await loadProductsFromDB();
+                // Загружаем товары для чека и все товары для поиска параллельно
+                await Promise.all([
+                    loadProductsFromDB(),
+                    loadAllProducts()
+                ]);
+                
+                // Загружаем сохраненные пометки досборки
                 loadPendingCollectItems();
-                loadProductOrder();
+                
                 cleanupDuplicates();
                 displayTransaction();
                 
@@ -705,6 +1008,24 @@
         // Отображение чека
         function displayTransaction() {
             if (!transaction) return;
+            
+            if (changes.added.length > 0) {
+                console.log('🔍 Текущие добавленные товары в changes.added:', changes.added);
+                
+                const realProductIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
+                const phantomProducts = changes.added.filter(added => {
+                    const isInRealCheck = realProductIds.includes(added.product_id);
+                    if (isInRealCheck) {
+                        console.log(`⚠️ Товар ${added.product_id} есть и в changes.added и в реальном чеке - возможно дублирование`);
+                    }
+                    return !isInRealCheck;
+                });
+                
+                if (phantomProducts.length > 0) {
+                    console.warn('👻 Обнаружены "призрачные" товары (есть в изменениях, но нет в Poster):', phantomProducts);
+                    showMessage(`Обнаружены несохраненные товары: ${phantomProducts.length} шт. Нажмите "Очистить изменения" для удаления.`, 'warning');
+                }
+            }
             
             const products = transaction.products || [];
             if (products.length === 0 && changes.added.length === 0) {
@@ -725,6 +1046,7 @@
                 }
                 
                 const unitPrice = Math.round(totalPrice / quantity);
+                
                 const isMarkedForRemoval = changes.removed.some(r => r.product_id === product.product_id);
                 const isPendingCollect = pendingCollectItems.has(product.product_id);
                 
@@ -732,7 +1054,7 @@
                     totalSum += parseInt(totalPrice);
                 }
                 
-                const productInfo = productsDB[product.product_id] || null;
+                const productInfo = productsDB[product.product_id] || allProducts.find(p => p.product_id === product.product_id) || null;
                 let productName = `Товар ID: ${product.product_id}`;
                 let productCode = '';
                 
@@ -752,11 +1074,277 @@
                 const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${product.product_id}')` : `removeProduct('${product.product_id}')`;
                 
                 productsHtml += `
-                    <div class="${productClass}" data-id="${product.product_id}" draggable="true">
-                        <div class="drag-handle" title="Перетащите для изменения порядка">⋮⋮</div>
+                    <div class="${productClass}" data-id="${product.product_id}">
                         <label class="collect-label" ${isMarkedForRemoval ? 'style="pointer-events: none; opacity: 0.5;"' : ''}>
                             <input type="checkbox" 
                                    class="collect-checkbox" 
                                    ${isPendingCollect ? 'checked' : ''}
                                    onchange="togglePendingCollect('${product.product_id}')"
-                                   ${isMarkedForRemoval ?
+                                   ${isMarkedForRemoval ? 'disabled' : ''}
+                                   title="Пометить для досборки">
+                        </label>
+                        <div class="product-name">
+                            <div>${productName}${productCode}</div>
+                            <div class="product-id">ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
+                        </div>
+                        <div class="product-controls">
+                            <input type="number" class="quantity" value="${quantity}" min="1" step="1"
+                                   onchange="updateQuantity('${product.product_id}', this.value)" ${isMarkedForRemoval ? 'disabled' : ''}>
+                            <div class="price">${formatPrice(totalPrice)}</div>
+                            <button class="btn btn-danger" onclick="${removeButtonAction}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Добавляем новые товары из изменений
+            changes.added.forEach(addedItem => {
+                const realProductIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
+                if (realProductIds.includes(addedItem.product_id)) {
+                    console.warn(`⚠️ Товар ${addedItem.product_id} уже есть в реальном чеке, пропускаем добавление в интерфейс`);
+                    return;
+                }
+                
+                const productInfo = allProducts.find(p => p.product_id === addedItem.product_id) || null;
+                let productName = `Товар ID: ${addedItem.product_id}`;
+                let productCode = '';
+                let unitPrice = 0;
+                
+                if (productInfo) {
+                    productName = productInfo.product_name || productName;
+                    productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
+                    unitPrice = Math.round(productInfo.price * 100);
+                } else {
+                    console.warn('⚠️ Товар не найден в базе данных:', addedItem.product_id);
+                }
+                
+                const totalPrice = unitPrice * addedItem.quantity;
+                totalSum += totalPrice;
+                
+                productsHtml += `
+                    <div class="product" data-id="${addedItem.product_id}" style="background: #e8f5e8; border-left: 4px solid #28a745;">
+                        <label class="collect-label">
+                            <input type="checkbox" 
+                                   class="collect-checkbox" 
+                                   onchange="togglePendingCollect('${addedItem.product_id}')"
+                                   title="Пометить для досборки">
+                        </label>
+                        <div class="product-name">
+                            <div>${productName}${productCode} <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span></div>
+                            <div class="product-id">ID: ${addedItem.product_id} • ${formatPrice(unitPrice)} за шт. × ${addedItem.quantity}</div>
+                        </div>
+                        <div class="product-controls">
+                            <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
+                                   onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
+                            <div class="price">${formatPrice(totalPrice)}</div>
+                            <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')" title="Удалить из списка добавления">×</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (!productsHtml) {
+                productsHtml = '<div class="product">В чеке нет товаров</div>';
+            }
+            
+            document.getElementById('productsList').innerHTML = productsHtml;
+            document.getElementById('totalSum').textContent = formatPrice(totalSum);
+            document.getElementById('content').style.display = 'block';
+        }
+
+        // Функции изменения товаров
+        function updateQuantity(productId, newQuantity) {
+            const qty = parseInt(newQuantity);
+            if (qty < 1) return;
+            
+            const existing = changes.modified.find(item => item.product_id === productId);
+            if (existing) {
+                existing.quantity = qty;
+            } else {
+                changes.modified.push({ product_id: productId, quantity: qty });
+            }
+            console.log('Изменено количество:', productId, qty);
+        }
+
+        function removeProduct(productId) {
+            const isAlreadyRemoved = changes.removed.some(r => r.product_id === productId);
+            if (isAlreadyRemoved) return;
+            
+            changes.removed.push({ product_id: productId });
+            console.log('Помечен для удаления товар:', productId);
+            
+            showMessage('Товар помечен для удаления (будет удален после сохранения)', 'success');
+            displayTransaction();
+        }
+
+        function restoreProduct(productId) {
+            changes.removed = changes.removed.filter(item => item.product_id !== productId);
+            console.log('Восстановлен товар:', productId);
+            
+            showMessage('Товар восстановлен', 'success');
+            displayTransaction();
+        }
+
+        function updateAddedQuantity(productId, newQuantity) {
+            const qty = parseInt(newQuantity);
+            if (qty < 1) return;
+            
+            const addedItem = changes.added.find(item => item.product_id === productId);
+            if (addedItem) {
+                addedItem.quantity = qty;
+                console.log('Изменено количество добавленного товара:', productId, qty);
+                displayTransaction();
+            }
+        }
+
+        function removeAddedProduct(productId) {
+            changes.added = changes.added.filter(item => item.product_id !== productId);
+            console.log('Удален добавленный товар:', productId);
+            
+            showMessage('Товар удален из списка добавления', 'success');
+            displayTransaction();
+        }
+
+        function saveChanges() {
+            const total = changes.added.length + changes.modified.length + changes.removed.length;
+            if (total === 0) {
+                showMessage('Нет изменений для сохранения', 'warning');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('saveBtn');
+            const originalText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = '💾 Сохранение...';
+            
+            console.log('🔄 Начинаем сохранение изменений:', changes);
+            
+            saveChangesAPI()
+                .then(() => {
+                    showMessage(
+                        `✅ Изменения сохранены! Добавлено: ${changes.added.length}, изменено: ${changes.modified.length}, удалено: ${changes.removed.length}`,
+                        'success'
+                    );
+                    
+                    changes = { added: [], modified: [], removed: [] };
+                    
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'poster-check-saved',
+                            transactionId: transactionId,
+                            message: 'Изменения сохранены успешно'
+                        }, '*');
+                    }
+                    
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                })
+                .catch(error => {
+                    console.error('❌ Ошибка сохранения:', error);
+                    showMessage('Ошибка сохранения: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = originalText;
+                });
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+
+        function clearLocalChanges() {
+            if (confirm('Очистить все несохраненные изменения? Это действие нельзя отменить.')) {
+                changes = { added: [], modified: [], removed: [] };
+                selectedProduct = null;
+                document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
+                document.getElementById('quickAddBtn').disabled = true;
+                console.log('🧹 Локальные изменения очищены');
+                showMessage('Все несохраненные изменения очищены', 'success');
+                displayTransaction();
+            }
+        }
+
+        function cleanupDuplicates() {
+            if (!transaction || !transaction.products) return;
+            
+            const realProductIds = transaction.products.map(p => p.product_id);
+            const originalAddedCount = changes.added.length;
+            
+            changes.added = changes.added.filter(addedItem => {
+                const isDuplicate = realProductIds.includes(addedItem.product_id);
+                if (isDuplicate) {
+                    console.log(`🧹 Удаляем дубликат из changes.added: ${addedItem.product_id}`);
+                }
+                return !isDuplicate;
+            });
+            
+            if (originalAddedCount > changes.added.length) {
+                const removedCount = originalAddedCount - changes.added.length;
+                console.log(`✅ Очищено дубликатов: ${removedCount}`);
+                showMessage(`Автоматически удалено дубликатов: ${removedCount}`, 'success');
+                displayTransaction();
+            }
+        }
+
+        // Инициализация поиска
+        function initializeSearch() {
+            const searchInput = document.getElementById('productSearch');
+            const barcodeInput = document.getElementById('barcodeSearch');
+            
+            // Поиск по мере ввода с задержкой
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value;
+                
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (query.length >= 2) {
+                        searchProducts(query);
+                    } else {
+                        hideSearchResults();
+                    }
+                }, 300);
+            });
+            
+            // Скрытие результатов при потере фокуса (с задержкой для клика)
+            searchInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    hideSearchResults();
+                }, 200);
+            });
+            
+            // Поиск по штрихкоду по Enter
+            barcodeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchByBarcode();
+                }
+            });
+            
+            // Инициализация фильтров
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    setSearchFilter(this.dataset.filter);
+                });
+            });
+            
+            console.log('🔍 Поиск инициализирован');
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM загружен, начинаем загрузку данных');
+            initializeSearch();
+            loadTransaction();
+        });
+
+        // Обработка ошибок
+        window.addEventListener('error', function(event) {
+            console.error('Глобальная ошибка:', event.error);
+            showMessage('JavaScript ошибка: ' + event.error?.message || 'Неизвестная ошибка', 'error');
+        });
+
+        console.log('📁 Скрипт с улучшенным поиском товаров инициализирован');
+    </script>
+</body>
+</html>
