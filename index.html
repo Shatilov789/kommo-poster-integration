@@ -902,218 +902,76 @@
             }
         }
 
-        // DRAG AND DROP ФУНКЦИИ
+        // DRAG AND DROP ФУНКЦИИ - упрощенная версия
         
-        // Инициализация drag and drop
-        function initializeDragAndDrop() {
-            console.log('🎯 Инициализация Drag & Drop');
-            
-            // Добавляем обработчики для touch событий на мобильных устройствах
-            if ('ontouchstart' in window) {
-                console.log('📱 Мобильное устройство - добавляем touch обработчики');
-            }
-        }
+        let draggedElement = null;
+        let draggedIndex = null;
 
-        // Обработчики drag and drop
-        function handleDragStart(e, productId, index) {
-            console.log('🎯 Начало перетаскивания:', productId, 'индекс:', index);
-            
-            draggedElement = e.target.closest('.product');
-            draggedIndex = index;
-            
-            draggedElement.classList.add('dragging');
-            
-            // Для мобильных устройств
-            if (e.type === 'touchstart') {
-                e.preventDefault();
-                const touch = e.touches[0];
-                draggedElement.style.position = 'fixed';
-                draggedElement.style.zIndex = '1000';
-                draggedElement.style.pointerEvents = 'none';
+        function makeDraggable() {
+            const products = document.querySelectorAll('.product[data-id]');
+            products.forEach((product, index) => {
+                if (product.classList.contains('removed-product')) return;
                 
-                // Сохраняем начальную позицию
-                draggedElement.initialX = touch.clientX;
-                draggedElement.initialY = touch.clientY;
-            } else {
-                // Для десктопа
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/html', productId);
-            }
-            
-            showMessage(`Перетаскиваем товар ${productId}`, 'info');
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            
-            if (!draggedElement) return;
-            
-            const targetProduct = e.target.closest('.product');
-            if (!targetProduct || targetProduct === draggedElement) return;
-            
-            // Удаляем предыдущие индикаторы
-            document.querySelectorAll('.drag-over').forEach(el => {
-                el.classList.remove('drag-over');
-            });
-            
-            // Добавляем индикатор перетаскивания
-            targetProduct.classList.add('drag-over');
-        }
-
-        function handleDragLeave(e) {
-            const targetProduct = e.target.closest('.product');
-            if (targetProduct) {
-                targetProduct.classList.remove('drag-over');
-            }
-        }
-
-        function handleDrop(e, targetProductId, targetIndex) {
-            e.preventDefault();
-            
-            if (!draggedElement || draggedIndex === null) return;
-            
-            console.log('📦 Отпускание на товар:', targetProductId, 'индекс:', targetIndex);
-            
-            // Удаляем все drag классы
-            document.querySelectorAll('.product').forEach(product => {
-                product.classList.remove('dragging', 'drag-over');
-            });
-            
-            // Если перетаскиваем на тот же элемент
-            if (draggedIndex === targetIndex) {
-                resetDragState();
-                return;
-            }
-            
-            // Выполняем перестановку
-            reorderProducts(draggedIndex, targetIndex);
-            
-            resetDragState();
-            showMessage('Порядок товаров изменен', 'success');
-        }
-
-        function handleDragEnd(e) {
-            console.log('🏁 Завершение перетаскивания');
-            
-            // Очищаем все drag классы
-            document.querySelectorAll('.product').forEach(product => {
-                product.classList.remove('dragging', 'drag-over');
-            });
-            
-            resetDragState();
-        }
-
-        // Touch события для мобильных устройств
-        function handleTouchMove(e) {
-            if (!draggedElement) return;
-            
-            e.preventDefault();
-            const touch = e.touches[0];
-            
-            draggedElement.style.left = (touch.clientX - 50) + 'px';
-            draggedElement.style.top = (touch.clientY - 50) + 'px';
-            
-            // Определяем элемент под пальцем
-            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetProduct = elementBelow?.closest('.product');
-            
-            if (targetProduct && targetProduct !== draggedElement) {
-                // Удаляем предыдущие индикаторы
-                document.querySelectorAll('.drag-over').forEach(el => {
-                    el.classList.remove('drag-over');
+                product.draggable = true;
+                product.style.cursor = 'move';
+                
+                product.addEventListener('dragstart', (e) => {
+                    draggedElement = product;
+                    draggedIndex = index;
+                    product.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
                 });
                 
-                targetProduct.classList.add('drag-over');
-            }
-        }
-
-        function handleTouchEnd(e) {
-            if (!draggedElement) return;
-            
-            const touch = e.changedTouches[0];
-            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetProduct = elementBelow?.closest('.product');
-            
-            if (targetProduct && targetProduct !== draggedElement) {
-                const targetIndex = getCurrentProductOrder().findIndex(p => 
-                    p.product_id === targetProduct.dataset.id
-                );
+                product.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (draggedElement && product !== draggedElement) {
+                        product.classList.add('drag-over');
+                    }
+                });
                 
-                if (targetIndex !== -1 && targetIndex !== draggedIndex) {
-                    reorderProducts(draggedIndex, targetIndex);
-                    showMessage('Порядок товаров изменен', 'success');
-                }
-            }
-            
-            // Восстанавливаем стили
-            draggedElement.style.position = '';
-            draggedElement.style.zIndex = '';
-            draggedElement.style.left = '';
-            draggedElement.style.top = '';
-            draggedElement.style.pointerEvents = '';
-            
-            handleDragEnd(e);
+                product.addEventListener('dragleave', () => {
+                    product.classList.remove('drag-over');
+                });
+                
+                product.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedElement && product !== draggedElement) {
+                        const targetIndex = Array.from(product.parentNode.children).indexOf(product);
+                        reorderProducts(draggedIndex, targetIndex);
+                        showMessage('Порядок товаров изменен', 'success');
+                    }
+                    cleanupDragClasses();
+                });
+                
+                product.addEventListener('dragend', () => {
+                    cleanupDragClasses();
+                });
+            });
         }
 
-        function resetDragState() {
+        function cleanupDragClasses() {
+            document.querySelectorAll('.product').forEach(p => {
+                p.classList.remove('dragging', 'drag-over');
+            });
             draggedElement = null;
             draggedIndex = null;
         }
 
-        // Получение текущего порядка товаров
-        function getCurrentProductOrder() {
-            const products = transaction.products || [];
-            
-            // Объединяем реальные товары и добавленные
-            let allCurrentProducts = [...products];
-            
-            // Добавляем новые товары
-            changes.added.forEach(addedItem => {
-                const realProductIds = products.map(p => p.product_id);
-                if (!realProductIds.includes(addedItem.product_id)) {
-                    const productInfo = allProducts.find(p => p.product_id === addedItem.product_id);
-                    if (productInfo) {
-                        allCurrentProducts.push({
-                            product_id: addedItem.product_id,
-                            num: addedItem.quantity,
-                            product_price: Math.round(productInfo.price * 100) * addedItem.quantity,
-                            isAdded: true
-                        });
-                    }
-                }
-            });
-            
-            // Исключаем удаленные товары
-            allCurrentProducts = allCurrentProducts.filter(product => {
-                return !changes.removed.some(r => r.product_id === product.product_id);
-            });
-            
-            return allCurrentProducts;
-        }
-
-        // Перестановка товаров
         function reorderProducts(fromIndex, toIndex) {
             console.log(`🔄 Перестановка товара с позиции ${fromIndex} на позицию ${toIndex}`);
             
             const currentOrder = getCurrentProductOrder();
-            
             if (fromIndex < 0 || fromIndex >= currentOrder.length || 
                 toIndex < 0 || toIndex >= currentOrder.length) {
-                console.warn('⚠️ Неверные индексы для перестановки');
                 return;
             }
             
-            // Выполняем перестановку в массиве
             const [movedItem] = currentOrder.splice(fromIndex, 1);
             currentOrder.splice(toIndex, 0, movedItem);
             
-            // Сохраняем новый порядок
             const newOrder = currentOrder.map(product => product.product_id);
             changes.reordered = newOrder;
             
-            console.log('📋 Новый порядок товаров:', newOrder);
-            
-            // Перерисовываем интерфейс
             displayTransaction();
         }
 
@@ -1422,7 +1280,7 @@
                 // Экранируем данные для безопасного использования
                 const safeProductName = escapeHtml(productName);
                 const safeProductCode = escapeHtml(productCode);
-                const safeProductId = escapeHtml(product.product_id);
+                const safeProductId = product.product_id; // ID всегда безопасный
                 
                 let productClass = 'product';
                 if (isMarkedForRemoval) {
@@ -1436,45 +1294,21 @@
                 }
                 
                 const removeButtonText = isMarkedForRemoval ? '↺' : '×';
-                const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${safeProductId}')` : 
-                    (isAddedProduct ? `removeAddedProduct('${safeProductId}')` : `removeProduct('${safeProductId}')`);
-                
-                const quantityChangeAction = isAddedProduct ? 
-                    `updateAddedQuantity('${safeProductId}', this.value)` : 
-                    `updateQuantity('${safeProductId}', this.value)`;
-                
-                // Drag handle только для не удаленных товаров
-                const dragHandle = isMarkedForRemoval ? '' : `
-                    <div class="drag-handle" 
-                         draggable="true"
-                         onmousedown="handleDragStart(event, '${safeProductId}', ${index})"
-                         ontouchstart="handleDragStart(event, '${safeProductId}', ${index})"
-                         ondragstart="handleDragStart(event, '${safeProductId}', ${index})"
-                         title="Перетащите для изменения порядка">
-                        ⋮⋮
-                    </div>
-                `;
-                
                 const newProductBadge = isAddedProduct ? ' <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span>' : '';
                 const newProductStyle = isAddedProduct ? ' style="background: #e8f5e8; border-left: 4px solid #28a745;"' : '';
                 
                 productsHtml += `
                     <div class="${productClass}" 
                          data-id="${safeProductId}"
-                         ${newProductStyle}
-                         draggable="${!isMarkedForRemoval}"
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)"
-                         ondrop="handleDrop(event, '${safeProductId}', ${index})"
-                         ondragend="handleDragEnd(event)"
-                         ontouchmove="handleTouchMove(event)"
-                         ontouchend="handleTouchEnd(event)">
-                        ${dragHandle}
+                         data-is-removed="${isMarkedForRemoval}"
+                         data-is-added="${isAddedProduct}"
+                         ${newProductStyle}>
+                        <div class="drag-handle" title="Перетащите для изменения порядка">⋮⋮</div>
                         <label class="collect-label" ${isMarkedForRemoval ? 'style="pointer-events: none; opacity: 0.5;"' : ''}>
                             <input type="checkbox" 
                                    class="collect-checkbox" 
                                    ${isPendingCollect ? 'checked' : ''}
-                                   onchange="togglePendingCollect('${safeProductId}')"
+                                   data-product-id="${safeProductId}"
                                    ${isMarkedForRemoval ? 'disabled' : ''}
                                    title="Пометить для досборки">
                         </label>
@@ -1484,9 +1318,9 @@
                         </div>
                         <div class="product-controls">
                             <input type="number" class="quantity" value="${quantity}" min="1" step="1"
-                                   onchange="${quantityChangeAction}" ${isMarkedForRemoval ? 'disabled' : ''}>
+                                   data-product-id="${safeProductId}" ${isMarkedForRemoval ? 'disabled' : ''}>
                             <div class="price">${formatPrice(totalPrice)}</div>
-                            <button class="btn btn-danger" onclick="${removeButtonAction}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
+                            <button class="btn btn-danger" data-product-id="${safeProductId}" data-action="${isMarkedForRemoval ? 'restore' : 'remove'}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
                         </div>
                     </div>
                 `;
@@ -1498,7 +1332,86 @@
             
             document.getElementById('productsList').innerHTML = productsHtml;
             document.getElementById('totalSum').textContent = formatPrice(totalSum);
+            
+            // Добавляем event listeners после создания HTML
+            addEventListeners();
+            makeDraggable();
+            
             document.getElementById('content').style.display = 'block';
+        }
+
+        // Добавление event listeners
+        function addEventListeners() {
+            // Чекбоксы досборки
+            document.querySelectorAll('.collect-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    if (!this.disabled) {
+                        togglePendingCollect(this.dataset.productId);
+                    }
+                });
+            });
+
+            // Поля количества
+            document.querySelectorAll('.quantity').forEach(input => {
+                input.addEventListener('change', function() {
+                    const productId = this.dataset.productId;
+                    const isAdded = this.closest('.product').dataset.isAdded === 'true';
+                    
+                    if (isAdded) {
+                        updateAddedQuantity(productId, this.value);
+                    } else {
+                        updateQuantity(productId, this.value);
+                    }
+                });
+            });
+
+            // Кнопки удаления/восстановления
+            document.querySelectorAll('.btn-danger').forEach(button => {
+                button.addEventListener('click', function() {
+                    const productId = this.dataset.productId;
+                    const action = this.dataset.action;
+                    const isAdded = this.closest('.product').dataset.isAdded === 'true';
+                    
+                    if (action === 'restore') {
+                        restoreProduct(productId);
+                    } else if (isAdded) {
+                        removeAddedProduct(productId);
+                    } else {
+                        removeProduct(productId);
+                    }
+                });
+            });
+        }
+
+        // Получение текущего порядка товаров
+        function getCurrentProductOrder() {
+            const products = transaction.products || [];
+            
+            // Объединяем реальные товары и добавленные
+            let allCurrentProducts = [...products];
+            
+            // Добавляем новые товары
+            changes.added.forEach(addedItem => {
+                const realProductIds = products.map(p => p.product_id);
+                if (!realProductIds.includes(addedItem.product_id)) {
+                    const productInfo = allProducts.find(p => p.product_id === addedItem.product_id);
+                    if (productInfo) {
+                        allCurrentProducts.push({
+                            product_id: addedItem.product_id,
+                            num: addedItem.quantity,
+                            product_price: Math.round(productInfo.price * 100) * addedItem.quantity,
+                            isAdded: true
+                        });
+                    }
+                }
+            });
+            
+            // Исключаем удаленные товары
+            allCurrentProducts = allCurrentProducts.filter(product => {
+                return !changes.removed.some(r => r.product_id === product.product_id);
+            });
+            
+            return allCurrentProducts;
         }
 
         // Функции изменения товаров
@@ -1687,30 +1600,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM загружен, начинаем загрузку данных');
             initializeSearch();
-            initializeDragAndDrop();
             loadTransaction();
         });
 
-        // Глобальные обработчики для drag and drop
-        window.handleDragStart = handleDragStart;
-        window.handleDragOver = handleDragOver;
-        window.handleDragLeave = handleDragLeave;
-        window.handleDrop = handleDrop;
-        window.handleDragEnd = handleDragEnd;
-        window.handleTouchMove = handleTouchMove;
-        window.handleTouchEnd = handleTouchEnd;
-
         // Глобальные функции для интерфейса
-        window.togglePendingCollect = togglePendingCollect;
         window.selectProduct = selectProduct;
         window.quickAddProduct = quickAddProduct;
         window.searchByBarcode = searchByBarcode;
         window.setSearchFilter = setSearchFilter;
-        window.updateQuantity = updateQuantity;
-        window.removeProduct = removeProduct;
-        window.restoreProduct = restoreProduct;
-        window.updateAddedQuantity = updateAddedQuantity;
-        window.removeAddedProduct = removeAddedProduct;
         window.saveChanges = saveChanges;
         window.refreshData = refreshData;
         window.clearLocalChanges = clearLocalChanges;
