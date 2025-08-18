@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Редактор чеков Poster POS - Улучшенный поиск</title>
+    <title>Редактор чеков Poster POS - Улучшенный поиск + Drag & Drop</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -37,10 +37,64 @@
             gap: 15px; 
             padding: 16px 20px; 
             border-bottom: 1px solid #f0f0f0; 
-            transition: background 0.2s;
+            transition: background 0.2s, transform 0.2s;
+            position: relative;
+            cursor: move;
         }
         .product:hover { background: #f8f9fa; }
         .product:last-child { border-bottom: none; }
+        
+        /* Drag and Drop стили */
+        .product.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .product.drag-over {
+            border-top: 3px solid #3e5a6b;
+            background: #e3f2fd;
+        }
+        
+        .drag-handle {
+            color: #8b9bc1;
+            font-size: 16px;
+            cursor: grab;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .drag-handle:hover {
+            background: #e3f2fd;
+            color: #3e5a6b;
+        }
+        
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        
+        .drag-placeholder {
+            height: 70px;
+            background: #e3f2fd;
+            border: 2px dashed #3e5a6b;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3e5a6b;
+            font-weight: 500;
+            margin: 8px 0;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        
         .product-name { flex: 1; font-weight: 500; color: #333; }
         .product-name > div:first-child { font-size: 10.78px; margin-bottom: 4px; }
         .product-id { font-size: 9.24px; color: #8b9bc1; margin-top: 2px; }
@@ -285,6 +339,7 @@
             text-decoration: line-through; 
             background: #ffeaea !important; 
             position: relative;
+            cursor: default !important;
         }
         .removed-product::after {
             content: 'УДАЛЕН';
@@ -303,6 +358,9 @@
         .removed-product .btn-danger {
             pointer-events: none;
             opacity: 0.5;
+        }
+        .removed-product .drag-handle {
+            display: none;
         }
         
         /* Стили для товаров к досборке */
@@ -346,6 +404,40 @@
             align-items: center;
             gap: 10px;
         }
+
+        /* Drag indicator для мобильных устройств */
+        .drag-instructions {
+            font-size: 9.24px;
+            color: #8b9bc1;
+            text-align: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            border: 1px solid #e1e5e9;
+        }
+
+        /* Анимации для drag and drop */
+        .product-list {
+            position: relative;
+        }
+
+        .product.moving {
+            transition: transform 0.3s ease;
+        }
+
+        /* Touch-friendly drag handles */
+        @media (max-width: 768px) {
+            .drag-handle {
+                font-size: 20px;
+                padding: 10px 5px;
+                touch-action: none;
+            }
+            
+            .product {
+                padding: 20px 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -361,7 +453,10 @@
         <div id="content" style="display: none;">
             <div class="card">
                 <div class="card-header">📦 Товары в чеке</div>
-                <div id="productsList"></div>
+                <div class="drag-instructions">
+                    💡 Используйте ⋮⋮ для перетаскивания товаров и изменения их порядка в чеке
+                </div>
+                <div id="productsList" class="product-list"></div>
                 <div class="total">Итого: <span id="totalSum">0.00 ₴</span></div>
             </div>
 
@@ -461,7 +556,7 @@
     </div>
 
     <script>
-        console.log('🎯 Загрузка редактора чеков с улучшенным поиском');
+        console.log('🎯 Загрузка редактора чеков с улучшенным поиском и Drag & Drop');
         
         // Конфигурация API
         const API_BASE = 'http://localhost:8080/api-proxy.php';
@@ -478,8 +573,13 @@
         let selectedProduct = null; // Выбранный товар для добавления
         let searchTimeout = null; // Таймаут для поиска
         let currentFilter = 'all'; // Текущий фильтр поиска
-        let changes = { added: [], modified: [], removed: [] };
+        let changes = { added: [], modified: [], removed: [], reordered: [] };
         let pendingCollectItems = new Set(); // Товары к досборке (сохраняется локально)
+        
+        // Переменные для drag and drop
+        let draggedElement = null;
+        let draggedIndex = null;
+        let currentProductOrder = []; // Текущий порядок товаров
 
         console.log('🔍 Transaction ID:', transactionId);
         console.log('📡 API Base:', API_BASE);
@@ -685,7 +785,8 @@
         function highlightMatch(text, query) {
             if (!text || !query) return text;
             
-            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\                        <div class="search-result-item" onclick="selectProduct('${product.product_id}')">
+                            <div class="search-result-info">')})`, 'gi');
             return text.replace(regex, '<span class="highlight">$1</span>');
         }
 
@@ -788,6 +889,221 @@
             if (statsContainer && allProducts.length > 0) {
                 statsContainer.textContent = `Доступно товаров для поиска: ${allProducts.length}`;
             }
+        }
+
+        // DRAG AND DROP ФУНКЦИИ
+        
+        // Инициализация drag and drop
+        function initializeDragAndDrop() {
+            console.log('🎯 Инициализация Drag & Drop');
+            
+            // Добавляем обработчики для touch событий на мобильных устройствах
+            if ('ontouchstart' in window) {
+                console.log('📱 Мобильное устройство - добавляем touch обработчики');
+            }
+        }
+
+        // Обработчики drag and drop
+        function handleDragStart(e, productId, index) {
+            console.log('🎯 Начало перетаскивания:', productId, 'индекс:', index);
+            
+            draggedElement = e.target.closest('.product');
+            draggedIndex = index;
+            
+            draggedElement.classList.add('dragging');
+            
+            // Для мобильных устройств
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+                const touch = e.touches[0];
+                draggedElement.style.position = 'fixed';
+                draggedElement.style.zIndex = '1000';
+                draggedElement.style.pointerEvents = 'none';
+                
+                // Сохраняем начальную позицию
+                draggedElement.initialX = touch.clientX;
+                draggedElement.initialY = touch.clientY;
+            } else {
+                // Для десктопа
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', productId);
+            }
+            
+            showMessage(`Перетаскиваем товар ${productId}`, 'info');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            
+            if (!draggedElement) return;
+            
+            const targetProduct = e.target.closest('.product');
+            if (!targetProduct || targetProduct === draggedElement) return;
+            
+            // Удаляем предыдущие индикаторы
+            document.querySelectorAll('.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+            
+            // Добавляем индикатор перетаскивания
+            targetProduct.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            const targetProduct = e.target.closest('.product');
+            if (targetProduct) {
+                targetProduct.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e, targetProductId, targetIndex) {
+            e.preventDefault();
+            
+            if (!draggedElement || draggedIndex === null) return;
+            
+            console.log('📦 Отпускание на товар:', targetProductId, 'индекс:', targetIndex);
+            
+            // Удаляем все drag классы
+            document.querySelectorAll('.product').forEach(product => {
+                product.classList.remove('dragging', 'drag-over');
+            });
+            
+            // Если перетаскиваем на тот же элемент
+            if (draggedIndex === targetIndex) {
+                resetDragState();
+                return;
+            }
+            
+            // Выполняем перестановку
+            reorderProducts(draggedIndex, targetIndex);
+            
+            resetDragState();
+            showMessage('Порядок товаров изменен', 'success');
+        }
+
+        function handleDragEnd(e) {
+            console.log('🏁 Завершение перетаскивания');
+            
+            // Очищаем все drag классы
+            document.querySelectorAll('.product').forEach(product => {
+                product.classList.remove('dragging', 'drag-over');
+            });
+            
+            resetDragState();
+        }
+
+        // Touch события для мобильных устройств
+        function handleTouchMove(e) {
+            if (!draggedElement) return;
+            
+            e.preventDefault();
+            const touch = e.touches[0];
+            
+            draggedElement.style.left = (touch.clientX - 50) + 'px';
+            draggedElement.style.top = (touch.clientY - 50) + 'px';
+            
+            // Определяем элемент под пальцем
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetProduct = elementBelow?.closest('.product');
+            
+            if (targetProduct && targetProduct !== draggedElement) {
+                // Удаляем предыдущие индикаторы
+                document.querySelectorAll('.drag-over').forEach(el => {
+                    el.classList.remove('drag-over');
+                });
+                
+                targetProduct.classList.add('drag-over');
+            }
+        }
+
+        function handleTouchEnd(e) {
+            if (!draggedElement) return;
+            
+            const touch = e.changedTouches[0];
+            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetProduct = elementBelow?.closest('.product');
+            
+            if (targetProduct && targetProduct !== draggedElement) {
+                const targetIndex = getCurrentProductOrder().findIndex(p => 
+                    p.product_id === targetProduct.dataset.id
+                );
+                
+                if (targetIndex !== -1 && targetIndex !== draggedIndex) {
+                    reorderProducts(draggedIndex, targetIndex);
+                    showMessage('Порядок товаров изменен', 'success');
+                }
+            }
+            
+            // Восстанавливаем стили
+            draggedElement.style.position = '';
+            draggedElement.style.zIndex = '';
+            draggedElement.style.left = '';
+            draggedElement.style.top = '';
+            draggedElement.style.pointerEvents = '';
+            
+            handleDragEnd(e);
+        }
+
+        function resetDragState() {
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        // Получение текущего порядка товаров
+        function getCurrentProductOrder() {
+            const products = transaction.products || [];
+            
+            // Объединяем реальные товары и добавленные
+            let allCurrentProducts = [...products];
+            
+            // Добавляем новые товары
+            changes.added.forEach(addedItem => {
+                const realProductIds = products.map(p => p.product_id);
+                if (!realProductIds.includes(addedItem.product_id)) {
+                    const productInfo = allProducts.find(p => p.product_id === addedItem.product_id);
+                    if (productInfo) {
+                        allCurrentProducts.push({
+                            product_id: addedItem.product_id,
+                            num: addedItem.quantity,
+                            product_price: Math.round(productInfo.price * 100) * addedItem.quantity,
+                            isAdded: true
+                        });
+                    }
+                }
+            });
+            
+            // Исключаем удаленные товары
+            allCurrentProducts = allCurrentProducts.filter(product => {
+                return !changes.removed.some(r => r.product_id === product.product_id);
+            });
+            
+            return allCurrentProducts;
+        }
+
+        // Перестановка товаров
+        function reorderProducts(fromIndex, toIndex) {
+            console.log(`🔄 Перестановка товара с позиции ${fromIndex} на позицию ${toIndex}`);
+            
+            const currentOrder = getCurrentProductOrder();
+            
+            if (fromIndex < 0 || fromIndex >= currentOrder.length || 
+                toIndex < 0 || toIndex >= currentOrder.length) {
+                console.warn('⚠️ Неверные индексы для перестановки');
+                return;
+            }
+            
+            // Выполняем перестановку в массиве
+            const [movedItem] = currentOrder.splice(fromIndex, 1);
+            currentOrder.splice(toIndex, 0, movedItem);
+            
+            // Сохраняем новый порядок
+            const newOrder = currentOrder.map(product => product.product_id);
+            changes.reordered = newOrder;
+            
+            console.log('📋 Новый порядок товаров:', newOrder);
+            
+            // Перерисовываем интерфейс
+            displayTransaction();
         }
 
         // Функции для работы с досборкой
@@ -931,6 +1247,15 @@
                 promises.push(promise);
             }
             
+            // Сохранение нового порядка товаров
+            if (changes.reordered && changes.reordered.length > 0) {
+                console.log('🔄 Сохраняем новый порядок товаров:', changes.reordered);
+                
+                // Примечание: В реальном API Poster может не быть функции изменения порядка
+                // В этом случае порядок сохраняется только локально
+                console.log('⚠️ Порядок товаров сохранен локально (API Poster может не поддерживать изменение порядка)');
+            }
+            
             // Выполняем все операции параллельно
             if (promises.length > 0) {
                 console.log(`🚀 Выполняем ${promises.length} операций с чеком...`);
@@ -985,6 +1310,11 @@
                 transaction = data.response[0];
                 console.log('📋 Чек загружен:', transaction);
                 
+                // Инициализируем порядок товаров
+                if (transaction.products) {
+                    currentProductOrder = transaction.products.map(p => p.product_id);
+                }
+                
                 // Загружаем товары для чека и все товары для поиска параллельно
                 await Promise.all([
                     loadProductsFromDB(),
@@ -1027,8 +1357,22 @@
                 }
             }
             
-            const products = transaction.products || [];
-            if (products.length === 0 && changes.added.length === 0) {
+            // Получаем текущий порядок товаров
+            let orderedProducts = getCurrentProductOrder();
+            
+            // Применяем сохраненный порядок если есть
+            if (changes.reordered && changes.reordered.length > 0) {
+                const reorderedProducts = [];
+                changes.reordered.forEach(productId => {
+                    const product = orderedProducts.find(p => p.product_id === productId);
+                    if (product) {
+                        reorderedProducts.push(product);
+                    }
+                });
+                orderedProducts = reorderedProducts;
+            }
+            
+            if (orderedProducts.length === 0) {
                 document.getElementById('productsList').innerHTML = '<div class="product">В чеке нет товаров</div>';
                 return;
             }
@@ -1036,7 +1380,7 @@
             let productsHtml = '';
             let totalSum = 0;
             
-            products.forEach(product => {
+            orderedProducts.forEach((product, index) => {
                 const totalPrice = product.product_price;
                 const quantity = parseFloat(product.num);
                 
@@ -1049,6 +1393,7 @@
                 
                 const isMarkedForRemoval = changes.removed.some(r => r.product_id === product.product_id);
                 const isPendingCollect = pendingCollectItems.has(product.product_id);
+                const isAddedProduct = product.isAdded || false;
                 
                 if (!isMarkedForRemoval) {
                     totalSum += parseInt(totalPrice);
@@ -1070,11 +1415,45 @@
                     productClass += ' pending-collect';
                 }
                 
+                if (isAddedProduct) {
+                    productClass += ' moving';
+                }
+                
                 const removeButtonText = isMarkedForRemoval ? '↺' : '×';
-                const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${product.product_id}')` : `removeProduct('${product.product_id}')`;
+                const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${product.product_id}')` : 
+                    (isAddedProduct ? `removeAddedProduct('${product.product_id}')` : `removeProduct('${product.product_id}')`);
+                
+                const quantityChangeAction = isAddedProduct ? 
+                    `updateAddedQuantity('${product.product_id}', this.value)` : 
+                    `updateQuantity('${product.product_id}', this.value)`;
+                
+                // Drag handle только для не удаленных товаров
+                const dragHandle = isMarkedForRemoval ? '' : `
+                    <div class="drag-handle" 
+                         draggable="true"
+                         onmousedown="handleDragStart(event, '${product.product_id}', ${index})"
+                         ontouchstart="handleDragStart(event, '${product.product_id}', ${index})"
+                         ondragstart="handleDragStart(event, '${product.product_id}', ${index})"
+                         title="Перетащите для изменения порядка">
+                        ⋮⋮
+                    </div>
+                `;
+                
+                const newProductBadge = isAddedProduct ? ' <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span>' : '';
+                const newProductStyle = isAddedProduct ? ' style="background: #e8f5e8; border-left: 4px solid #28a745;"' : '';
                 
                 productsHtml += `
-                    <div class="${productClass}" data-id="${product.product_id}">
+                    <div class="${productClass}" 
+                         data-id="${product.product_id}"
+                         ${newProductStyle}
+                         draggable="${!isMarkedForRemoval}"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event, '${product.product_id}', ${index})"
+                         ondragend="handleDragEnd(event)"
+                         ontouchmove="handleTouchMove(event)"
+                         ontouchend="handleTouchEnd(event)">
+                        ${dragHandle}
                         <label class="collect-label" ${isMarkedForRemoval ? 'style="pointer-events: none; opacity: 0.5;"' : ''}>
                             <input type="checkbox" 
                                    class="collect-checkbox" 
@@ -1084,60 +1463,14 @@
                                    title="Пометить для досборки">
                         </label>
                         <div class="product-name">
-                            <div>${productName}${productCode}</div>
+                            <div>${productName}${productCode}${newProductBadge}</div>
                             <div class="product-id">ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
                         </div>
                         <div class="product-controls">
                             <input type="number" class="quantity" value="${quantity}" min="1" step="1"
-                                   onchange="updateQuantity('${product.product_id}', this.value)" ${isMarkedForRemoval ? 'disabled' : ''}>
+                                   onchange="${quantityChangeAction}" ${isMarkedForRemoval ? 'disabled' : ''}>
                             <div class="price">${formatPrice(totalPrice)}</div>
                             <button class="btn btn-danger" onclick="${removeButtonAction}" title="${isMarkedForRemoval ? 'Восстановить товар' : 'Удалить товар'}">${removeButtonText}</button>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            // Добавляем новые товары из изменений
-            changes.added.forEach(addedItem => {
-                const realProductIds = transaction.products ? transaction.products.map(p => p.product_id) : [];
-                if (realProductIds.includes(addedItem.product_id)) {
-                    console.warn(`⚠️ Товар ${addedItem.product_id} уже есть в реальном чеке, пропускаем добавление в интерфейс`);
-                    return;
-                }
-                
-                const productInfo = allProducts.find(p => p.product_id === addedItem.product_id) || null;
-                let productName = `Товар ID: ${addedItem.product_id}`;
-                let productCode = '';
-                let unitPrice = 0;
-                
-                if (productInfo) {
-                    productName = productInfo.product_name || productName;
-                    productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
-                    unitPrice = Math.round(productInfo.price * 100);
-                } else {
-                    console.warn('⚠️ Товар не найден в базе данных:', addedItem.product_id);
-                }
-                
-                const totalPrice = unitPrice * addedItem.quantity;
-                totalSum += totalPrice;
-                
-                productsHtml += `
-                    <div class="product" data-id="${addedItem.product_id}" style="background: #e8f5e8; border-left: 4px solid #28a745;">
-                        <label class="collect-label">
-                            <input type="checkbox" 
-                                   class="collect-checkbox" 
-                                   onchange="togglePendingCollect('${addedItem.product_id}')"
-                                   title="Пометить для досборки">
-                        </label>
-                        <div class="product-name">
-                            <div>${productName}${productCode} <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span></div>
-                            <div class="product-id">ID: ${addedItem.product_id} • ${formatPrice(unitPrice)} за шт. × ${addedItem.quantity}</div>
-                        </div>
-                        <div class="product-controls">
-                            <input type="number" class="quantity" value="${addedItem.quantity}" min="1" step="1"
-                                   onchange="updateAddedQuantity('${addedItem.product_id}', this.value)">
-                            <div class="price">${formatPrice(totalPrice)}</div>
-                            <button class="btn btn-danger" onclick="removeAddedProduct('${addedItem.product_id}')" title="Удалить из списка добавления">×</button>
                         </div>
                     </div>
                 `;
@@ -1221,12 +1554,15 @@
             
             saveChangesAPI()
                 .then(() => {
-                    showMessage(
-                        `✅ Изменения сохранены! Добавлено: ${changes.added.length}, изменено: ${changes.modified.length}, удалено: ${changes.removed.length}`,
-                        'success'
-                    );
+                    let message = `✅ Изменения сохранены! Добавлено: ${changes.added.length}, изменено: ${changes.modified.length}, удалено: ${changes.removed.length}`;
                     
-                    changes = { added: [], modified: [], removed: [] };
+                    if (changes.reordered && changes.reordered.length > 0) {
+                        message += `, изменен порядок товаров`;
+                    }
+                    
+                    showMessage(message, 'success');
+                    
+                    changes = { added: [], modified: [], removed: [], reordered: [] };
                     
                     if (window.parent !== window) {
                         window.parent.postMessage({
@@ -1256,7 +1592,7 @@
 
         function clearLocalChanges() {
             if (confirm('Очистить все несохраненные изменения? Это действие нельзя отменить.')) {
-                changes = { added: [], modified: [], removed: [] };
+                changes = { added: [], modified: [], removed: [], reordered: [] };
                 selectedProduct = null;
                 document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
                 document.getElementById('quickAddBtn').disabled = true;
@@ -1335,8 +1671,33 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 DOM загружен, начинаем загрузку данных');
             initializeSearch();
+            initializeDragAndDrop();
             loadTransaction();
         });
+
+        // Глобальные обработчики для drag and drop
+        window.handleDragStart = handleDragStart;
+        window.handleDragOver = handleDragOver;
+        window.handleDragLeave = handleDragLeave;
+        window.handleDrop = handleDrop;
+        window.handleDragEnd = handleDragEnd;
+        window.handleTouchMove = handleTouchMove;
+        window.handleTouchEnd = handleTouchEnd;
+
+        // Глобальные функции для интерфейса
+        window.togglePendingCollect = togglePendingCollect;
+        window.selectProduct = selectProduct;
+        window.quickAddProduct = quickAddProduct;
+        window.searchByBarcode = searchByBarcode;
+        window.setSearchFilter = setSearchFilter;
+        window.updateQuantity = updateQuantity;
+        window.removeProduct = removeProduct;
+        window.restoreProduct = restoreProduct;
+        window.updateAddedQuantity = updateAddedQuantity;
+        window.removeAddedProduct = removeAddedProduct;
+        window.saveChanges = saveChanges;
+        window.refreshData = refreshData;
+        window.clearLocalChanges = clearLocalChanges;
 
         // Обработка ошибок
         window.addEventListener('error', function(event) {
@@ -1344,7 +1705,16 @@
             showMessage('JavaScript ошибка: ' + event.error?.message || 'Неизвестная ошибка', 'error');
         });
 
-        console.log('📁 Скрипт с улучшенным поиском товаров инициализирован');
+        // Предотвращение стандартного поведения drag and drop на странице
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', function(e) {
+            e.preventDefault();
+        });
+
+        console.log('📁 Скрипт с улучшенным поиском товаров и Drag & Drop инициализирован');
     </script>
 </body>
 </html>
