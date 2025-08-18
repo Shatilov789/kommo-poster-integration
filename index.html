@@ -590,6 +590,17 @@
             return (parseInt(kopecks) / 100).toFixed(2) + ' ₴';
         }
 
+        // Функция для экранирования HTML и кавычек
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         // Функция показа сообщений
         function showMessage(message, type = 'info') {
             const errorEl = document.getElementById('error');
@@ -1408,6 +1419,11 @@
                     productCode = productInfo.product_code ? ` (${productInfo.product_code})` : '';
                 }
                 
+                // Экранируем данные для безопасного использования
+                const safeProductName = escapeHtml(productName);
+                const safeProductCode = escapeHtml(productCode);
+                const safeProductId = escapeHtml(product.product_id);
+                
                 let productClass = 'product';
                 if (isMarkedForRemoval) {
                     productClass += ' removed-product';
@@ -1420,20 +1436,20 @@
                 }
                 
                 const removeButtonText = isMarkedForRemoval ? '↺' : '×';
-                const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${product.product_id}')` : 
-                    (isAddedProduct ? `removeAddedProduct('${product.product_id}')` : `removeProduct('${product.product_id}')`);
+                const removeButtonAction = isMarkedForRemoval ? `restoreProduct('${safeProductId}')` : 
+                    (isAddedProduct ? `removeAddedProduct('${safeProductId}')` : `removeProduct('${safeProductId}')`);
                 
                 const quantityChangeAction = isAddedProduct ? 
-                    `updateAddedQuantity('${product.product_id}', this.value)` : 
-                    `updateQuantity('${product.product_id}', this.value)`;
+                    `updateAddedQuantity('${safeProductId}', this.value)` : 
+                    `updateQuantity('${safeProductId}', this.value)`;
                 
                 // Drag handle только для не удаленных товаров
                 const dragHandle = isMarkedForRemoval ? '' : `
                     <div class="drag-handle" 
                          draggable="true"
-                         onmousedown="handleDragStart(event, '${product.product_id}', ${index})"
-                         ontouchstart="handleDragStart(event, '${product.product_id}', ${index})"
-                         ondragstart="handleDragStart(event, '${product.product_id}', ${index})"
+                         onmousedown="handleDragStart(event, '${safeProductId}', ${index})"
+                         ontouchstart="handleDragStart(event, '${safeProductId}', ${index})"
+                         ondragstart="handleDragStart(event, '${safeProductId}', ${index})"
                          title="Перетащите для изменения порядка">
                         ⋮⋮
                     </div>
@@ -1444,12 +1460,12 @@
                 
                 productsHtml += `
                     <div class="${productClass}" 
-                         data-id="${product.product_id}"
+                         data-id="${safeProductId}"
                          ${newProductStyle}
                          draggable="${!isMarkedForRemoval}"
                          ondragover="handleDragOver(event)"
                          ondragleave="handleDragLeave(event)"
-                         ondrop="handleDrop(event, '${product.product_id}', ${index})"
+                         ondrop="handleDrop(event, '${safeProductId}', ${index})"
                          ondragend="handleDragEnd(event)"
                          ontouchmove="handleTouchMove(event)"
                          ontouchend="handleTouchEnd(event)">
@@ -1458,13 +1474,13 @@
                             <input type="checkbox" 
                                    class="collect-checkbox" 
                                    ${isPendingCollect ? 'checked' : ''}
-                                   onchange="togglePendingCollect('${product.product_id}')"
+                                   onchange="togglePendingCollect('${safeProductId}')"
                                    ${isMarkedForRemoval ? 'disabled' : ''}
                                    title="Пометить для досборки">
                         </label>
                         <div class="product-name">
-                            <div>${productName}${productCode}${newProductBadge}</div>
-                            <div class="product-id">ID: ${product.product_id} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
+                            <div>${safeProductName}${safeProductCode}${newProductBadge}</div>
+                            <div class="product-id">ID: ${safeProductId} • ${formatPrice(unitPrice)} за шт. × ${quantity}</div>
                         </div>
                         <div class="product-controls">
                             <input type="number" class="quantity" value="${quantity}" min="1" step="1"
