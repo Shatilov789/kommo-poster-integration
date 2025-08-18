@@ -59,6 +59,11 @@
             background: #e3f2fd;
         }
         
+        .product.drag-over-bottom {
+            border-bottom: 3px solid #3e5a6b;
+            background: #e3f2fd;
+        }
+        
         .drag-handle {
             color: #8b9bc1;
             font-size: 16px;
@@ -594,16 +599,33 @@
                 const targetProduct = e.target.closest('.product');
                 if (targetProduct && targetProduct !== draggedElement && !targetProduct.classList.contains('removed-product')) {
                     // Убираем предыдущие выделения
-                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-                    // Добавляем выделение
-                    targetProduct.classList.add('drag-over');
+                    document.querySelectorAll('.drag-over, .drag-over-bottom').forEach(el => {
+                        el.classList.remove('drag-over', 'drag-over-bottom');
+                    });
+                    
+                    // Определяем, куда вставлять: сверху или снизу
+                    const rect = targetProduct.getBoundingClientRect();
+                    const midpoint = rect.top + rect.height / 2;
+                    const mouseY = e.clientY;
+                    
+                    if (mouseY < midpoint) {
+                        // Вставляем сверху
+                        targetProduct.classList.add('drag-over');
+                    } else {
+                        // Вставляем снизу
+                        targetProduct.classList.add('drag-over-bottom');
+                    }
                 }
             });
             
             productsList.addEventListener('dragleave', function(e) {
-                const targetProduct = e.target.closest('.product');
-                if (targetProduct) {
-                    targetProduct.classList.remove('drag-over');
+                // Проверяем, что мышь действительно покинула элемент
+                const rect = productsList.getBoundingClientRect();
+                if (e.clientX < rect.left || e.clientX > rect.right || 
+                    e.clientY < rect.top || e.clientY > rect.bottom) {
+                    document.querySelectorAll('.drag-over, .drag-over-bottom').forEach(el => {
+                        el.classList.remove('drag-over', 'drag-over-bottom');
+                    });
                 }
             });
             
@@ -616,8 +638,20 @@
                     
                     console.log('📦 Перетаскивание с', draggedProductId, 'на', targetProductId);
                     
-                    // Простая перестановка - вставляем перед целевым элементом
-                    targetProduct.parentNode.insertBefore(draggedElement, targetProduct);
+                    // Определяем позицию вставки
+                    if (targetProduct.classList.contains('drag-over')) {
+                        // Вставляем перед целевым элементом
+                        targetProduct.parentNode.insertBefore(draggedElement, targetProduct);
+                    } else if (targetProduct.classList.contains('drag-over-bottom')) {
+                        // Вставляем после целевого элемента
+                        const nextSibling = targetProduct.nextElementSibling;
+                        if (nextSibling) {
+                            targetProduct.parentNode.insertBefore(draggedElement, nextSibling);
+                        } else {
+                            // Это последний элемент, добавляем в конец
+                            targetProduct.parentNode.appendChild(draggedElement);
+                        }
+                    }
                     
                     // Сохраняем новый порядок
                     saveCurrentOrder();
@@ -636,7 +670,7 @@
         
         function cleanupDragState() {
             document.querySelectorAll('.product').forEach(product => {
-                product.classList.remove('dragging', 'drag-over');
+                product.classList.remove('dragging', 'drag-over', 'drag-over-bottom');
             });
             draggedElement = null;
             draggedProductId = null;
