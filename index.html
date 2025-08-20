@@ -1922,10 +1922,28 @@
 
         // Обработка сообщений от родительского окна (для iframe)
         window.addEventListener('message', function(event) {
+            console.log('📨 Получено сообщение:', event.data);
+            
             if (event.data && event.data.type === 'kommo-lead-updated') {
                 console.log('🔗 Получено обновление сделки от Kommo:', event.data);
                 if (event.data.lead_id === leadId) {
                     // Обновляем данные сделки
+                    initializeKommoSync();
+                }
+            }
+            
+            // Получаем lead_id из сообщения, если он не был в URL
+            if (event.data && event.data.lead_id && !leadId) {
+                leadId = event.data.lead_id;
+                console.log('🎯 Lead ID получен из postMessage:', leadId);
+                initializeKommoSync();
+            }
+            
+            // Обработка инициализации из виджета Kommo
+            if (event.data && event.data.type === 'kommo-widget-init') {
+                console.log('🚀 Инициализация от виджета Kommo:', event.data);
+                if (event.data.lead_id) {
+                    leadId = event.data.lead_id;
                     initializeKommoSync();
                 }
             }
