@@ -694,7 +694,8 @@
                         method: 'POST',
                         mode: 'cors',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'  // ← ДОБАВИТЬ ЭТУ СТРОКУ
                         },
                         body: JSON.stringify({
                             endpoint: endpoint,
@@ -707,26 +708,16 @@
                     Object.keys(params).forEach(key => {
                         url.searchParams.set(key, params[key]);
                     });
-                    options = { method: 'GET', mode: 'cors' };
+                    options = { 
+                        method: 'GET', 
+                        mode: 'cors',
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true'  // ← ДОБАВИТЬ ЭТУ СТРОКУ
+                        }
+                    };
                 }
                 
-                console.log(`🌐 API запрос ${endpoint}:`, { url: url.toString(), method: options.method });
-                
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log(`✅ ${endpoint} ответ:`, data);
-                
-                if (endpoint.startsWith('transactions.') && data.error) {
-                    console.error(`❌ ${endpoint} вернул ошибку:`, data.error);
-                    throw new Error(`API Error: ${JSON.stringify(data.error)}`);
-                }
-                
-                return data;
-                
+                // ... остальной код остается тот же
             } catch (error) {
                 console.error(`❌ ${endpoint} ошибка:`, error);
                 throw error;
@@ -738,7 +729,11 @@
             try {
                 console.log('📦 Загружаем все товары для поиска...');
                 
-                const response = await fetch(`${PRODUCTS_API}&path=products&limit=1000`);
+                const response = await fetch(`${PRODUCTS_API}&path=products&limit=1000`, {
+                    headers: {
+                        'ngrok-skip-browser-warning': 'true'  // ← ДОБАВИТЬ ЭТУ СТРОКУ
+                    }
+                });
                 if (!response.ok) throw new Error(`Products API error: ${response.status}`);
                 
                 const data = await response.json();
@@ -1111,7 +1106,11 @@
                 const url = `${PRODUCTS_API}&path=products&product_ids=${productIds.join(',')}`;
                 console.log('🌐 Запрос к БД:', url);
                 
-                const response = await fetch(url);
+               const response = await fetch(url, {
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true'  // ← ДОБАВИТЬ ЭТУ СТРОКУ
+                        }
+                    });
                 if (!response.ok) throw new Error(`Products API error: ${response.status}`);
                 
                 const data = await response.json();
@@ -1521,4 +1520,5 @@
     </script>
 </body>
 </html>
+
 
