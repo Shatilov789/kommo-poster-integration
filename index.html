@@ -856,18 +856,16 @@
             resultsContainer.classList.add('show');
         }
 
-        // Выделение найденного текста
+        // Выделение найденного текста (фикс)
         function highlightMatch(text, query) {
             if (!text || !query) return text;
-            
-            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\        // Выделение найденного текста
-        function highlightMatch(text, query) {
-            if (!text || !query) return text;
-            
-            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\                console.warn('')})`, 'gi');
-            return text.replace(regex, '<span class="highlight">$1</span>');
-        }')})`, 'gi');
-            return text.replace(regex, '<span class="highlight">$1</span>');
+        
+            // Экранируем спецсимволы RegExp, чтобы знак $ { } и др. не ломали шаблон
+            const queryEscaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+            // Формируем регистр-независимый паттерн и оборачиваем совпадения в span.highlight
+            const regex = new RegExp(`(${queryEscaped})`, 'gi');
+            return String(text).replace(regex, '<span class="highlight">$1</span>');
         }
 
         // Скрытие результатов поиска
@@ -1613,3 +1611,4 @@
     </script>
 </body>
 </html>
+
