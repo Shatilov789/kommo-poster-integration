@@ -1068,6 +1068,10 @@
                     
                     promises.push(addPromise);
                 }
+                if (promises.length > 0) {
+                        updateKommoTags(); // 🆕 ДОБАВИТЬ ЭТУ СТРОЧКУ
+                    }
+                }
             }
             
             // Изменение количества существующих товаров
@@ -1110,7 +1114,71 @@
                 console.log('✅ Все операции выполнены успешно');
             }
         }
+        async function updateKommoTags() {
+            try {
+                const skus = getCurrentSKUs();
+                if (skus.length === 0) {
+                    console.log('🏷️ Нет SKU для обновления Kommo');
+                    return;
+                }
+                
+                console.log('🏷️ Обновляем теги Kommo для SKU:', skus);
+                
+                const response = await fetch(`${API_BASE}?action=update_kommo_tags`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ 
+                        transaction_id: transactionId, 
+                        skus: skus 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Теги Kommo обновлены:', result);
+                    showMessage(`🏷️ Kommo: удалено ${result.tags_removed || 0}, добавлено ${result.tags_added || 0} тегов`, 'success');
+                } else {
+                    console.warn('⚠️ Ошибка Kommo:', result.error);
+                    showMessage(`⚠️ Kommo: ${result.error}`, 'warning');
+                }
+            } catch (e) {
+                console.warn('⚠️ Kommo недоступен:', e.message);
+                // Не показываем ошибку пользователю, чтобы не мешать основной работе
+            }
+        }
 
+        function getCurrentSKUs() {
+            const skus = [];
+            
+            // Из текущих товаров транзакции
+            if (transaction?.products) {
+                transaction.products.forEach(product => {
+                    const quantity = parseFloat(product.num);
+                    const isRemoved = changes.removed.some(r => r.product_id === product.product_id);
+                    
+                    if (quantity > 0 && !isRemoved) {
+                        const productInfo = productsDB[product.product_id] || allProducts.find(p => p.product_id === product.product_id);
+                        if (productInfo?.product_code) {
+                            skus.push(productInfo.product_code);
+                        }
+                    }
+                });
+            }
+            
+            // Из добавленных товаров
+            changes.added.forEach(item => {
+                const productInfo = allProducts.find(p => p.product_id === item.product_id);
+                if (productInfo?.product_code) {
+                    skus.push(productInfo.product_code);
+                }
+            });
+            
+            return [...new Set(skus)]; // Убираем дубликаты
+        }
         // Загрузка товаров из БД для текущего чека
         async function loadProductsFromDB() {
             try {
@@ -1536,6 +1604,7 @@
     </script>
 </body>
 </html>
+
 
 
 
