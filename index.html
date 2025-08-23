@@ -1121,7 +1121,7 @@
         }
         
         async function updateKommoTags() {
-            try {
+                   try {
                 const skus = getCurrentSKUs();
                 if (skus.length === 0) {
                     console.log('🏷️ Нет SKU для обновления Kommo');
@@ -1130,19 +1130,39 @@
                 
                 console.log('🏷️ Обновляем теги Kommo для SKU:', skus);
                 
+                // 🔍 ДЕТАЛЬНАЯ ОТЛАДКА:
+                const requestData = { 
+                    transaction_id: transactionId, 
+                    skus: skus 
+                };
+                console.log('📤 Отправляем запрос к Kommo:', requestData);
+                
                 const response = await fetch(`${API_BASE}?action=update_kommo_tags`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ 
-                        transaction_id: transactionId, 
-                        skus: skus 
-                    })
+                    body: JSON.stringify(requestData)
                 });
                 
-                const result = await response.json();
+                console.log('📥 Ответ от сервера - статус:', response.status);
+                
+                // Получаем сырой ответ как текст
+                const responseText = await response.text();
+                console.log('📥 Сырой ответ от сервера:', responseText);
+                
+                // Пытаемся распарсить JSON
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                    console.log('✅ JSON успешно распарсен:', result);
+                } catch (parseError) {
+                    console.error('❌ Ошибка парсинга JSON:', parseError);
+                    console.error('❌ Сырой текст ответа:', responseText.substring(0, 500));
+                    showMessage('⚠️ Kommo: Ошибка парсинга ответа сервера', 'warning');
+                    return;
+                }
                 
                 if (result.success) {
                     console.log('✅ Теги Kommo обновлены:', result);
@@ -1151,12 +1171,12 @@
                     console.warn('⚠️ Ошибка Kommo:', result.error);
                     showMessage(`⚠️ Kommo: ${result.error}`, 'warning');
                 }
+                
             } catch (e) {
-                console.warn('⚠️ Kommo недоступен:', e.message);
-                // Не показываем ошибку пользователю, чтобы не мешать основной работе
+                console.error('❌ Исключение в updateKommoTags:', e);
+                showMessage(`❌ Kommo: Ошибка соединения - ${e.message}`, 'warning');
             }
         }
-
         function getCurrentSKUs() {
             const skus = [];
             
@@ -1611,4 +1631,5 @@
     </script>
 </body>
 </html>
+
 
