@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Создание нового чека Poster POS</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            line-height: 1.4;
+            overflow-x: hidden;
+            color: #333;
+            font-size: 77%;
+        }
+        .container { max-width: 100%; padding: 20px; }
+        .card { 
+            background: white; 
+            border-radius: 8px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px; 
+            border: 1px solid #e1e5e9;
+        }
+        .card-header { 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #e1e5e9; 
+            font-weight: 600; 
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            color: #333;
+            font-size: 11.55px;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 10.78px;
+            color: #495057;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 6px;
+            font-size: 10.78px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #3e5a6b;
+            box-shadow: 0 0 0 2px rgba(62, 90, 107, 0.2);
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 6px;
+            font-size: 10.78px;
+            background: white;
+            cursor: pointer;
+        }
+        .form-select:focus {
+            outline: none;
+            border-color: #3e5a6b;
+            box-shadow: 0 0 0 2px rgba(62, 90, 107, 0.2);
+        }
+        .product { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #f0f0f0; 
+            transition: background 0.2s;
+        }
+        .product:hover { background: #f8f9fa; }
+        .product:last-child { border-bottom: none; }
+        .product-name { flex: 1; font-weight: 500; color: #333; font-size: 10.78px; }
+        .product-id { font-size: 9.24px; color: #8b9bc1; margin-top: 2px; }
+        .quantity { 
+            width: 70px; padding: 8px; text-align: center; border: 1px solid #d1d9e0; 
+            border-radius: 6px; font-size: 10.78px; background: white;
+        }
+        .quantity:focus { outline: none; border-color: #3e5a6b; }
+        .price { width: 100px; text-align: right; color: #27ae60; font-weight: 600; font-size: 10.78px; }
+        .btn { 
+            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; 
+            font-size: 10.78px; font-weight: 500; transition: all 0.2s;
+        }
+        .btn-danger { 
+            background: #e74c3c; color: white; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center; padding: 0;
+        }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-success:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-primary { background: #3e5a6b; color: white; }
+        .btn-primary:hover { background: #2c4752; }
+        .total { 
+            text-align: right; padding: 16px 20px; font-size: 12.32px; font-weight: 600;
+            color: #27ae60; background: #f8f9fa; border-radius: 0 0 8px 8px; border-top: 1px solid #e1e5e9;
+        }
+        .loading { text-align: center; padding: 60px 20px; color: #8b9bc1; }
+        .spinner { 
+            width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #4a90e2; 
+            border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { 
+            background: #ffeaea; color: #e74c3c; padding: 16px 20px; border-radius: 8px; 
+            margin: 15px 0; border: 1px solid #f5c6cb; font-size: 14px;
+        }
+        .success {
+            background: #eaf5ea; color: #27ae60; padding: 16px 20px; border-radius: 8px;
+            margin: 15px 0; border: 1px solid #c3e6cb; font-size: 14px;
+        }
+        
+        /* Стили для поиска товаров (из index.html) */
+        .search-form { 
+            padding: 20px; background: #f8f9fa; border-radius: 0 0 8px 8px;
+        }
+        .search-input-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .search-input {
+            width: 100%; 
+            padding: 12px 45px 12px 15px; 
+            border: 2px solid #d1d9e0; 
+            border-radius: 8px; 
+            font-size: 11.55px; 
+            background: white;
+        }
+        .search-input:focus {
+            outline: none; 
+            border-color: #3e5a6b; 
+            box-shadow: 0 0 0 3px rgba(62, 90, 107, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8b9bc1;
+            font-size: 16px;
+            pointer-events: none;
+        }
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #d1d9e0;
+            background: white;
+            border-radius: 20px;
+            font-size: 9.24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #6c757d;
+        }
+        .filter-btn.active {
+            background: #3e5a6b;
+            color: white;
+            border-color: #3e5a6b;
+        }
+        .filter-btn:hover {
+            border-color: #3e5a6b;
+        }
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: white;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .search-results.show {
+            display: block;
+        }
+        .search-result-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+        .search-result-info {
+            flex: 1;
+        }
+        .search-result-name {
+            font-weight: 500;
+            font-size: 10.78px;
+            color: #333;
+        }
+        .search-result-price {
+            font-weight: 600;
+            color: #27ae60;
+            font-size: 10.78px;
+        }
+        .quick-add-section {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        .quantity-input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 6px;
+            font-size: 10.78px;
+            text-align: center;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .delivery-fields {
+            display: none;
+        }
+        .delivery-fields.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Создание чека...</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="success" class="success" style="display: none;"></div>
+
+        <div id="content">
+            <!-- Данные клиента -->
+            <div class="card">
+                <div class="card-header">👤 Данные клиента</div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Имя *</label>
+                            <input type="text" class="form-input" id="clientFirstName" placeholder="Имя клиента">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Фамилия</label>
+                            <input type="text" class="form-input" id="clientLastName" placeholder="Фамилия клиента">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Телефон *</label>
+                            <input type="tel" class="form-input" id="clientPhone" placeholder="+380XXXXXXXXX">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-input" id="clientEmail" placeholder="email@example.com">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Режим обслуживания и доставка -->
+            <div class="card">
+                <div class="card-header">🚚 Режим обслуживания</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Тип обслуживания *</label>
+                        <select class="form-select" id="serviceMode" onchange="toggleDeliveryFields()">
+                            <option value="1">Здесь (в заведении)</option>
+                            <option value="2">На вынос</option>
+                            <option value="3">Доставка</option>
+                        </select>
+                    </div>
+                    
+                    <div class="delivery-fields" id="deliveryFields">
+                        <div class="form-group">
+                            <label class="form-label">Адрес доставки</label>
+                            <input type="text" class="form-input" id="deliveryAddress" placeholder="Город, улица, дом">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Дополнительная информация</label>
+                            <input type="text" class="form-input" id="deliveryAdditionalInfo" placeholder="Квартира, подъезд и т.д.">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Товары в чеке -->
+            <div class="card">
+                <div class="card-header">📦 Товары в чеке</div>
+                <div id="productsList" style="min-height: 100px;">
+                    <div class="product" style="justify-content: center; color: #8b9bc1;">
+                        Товары не добавлены
+                    </div>
+                </div>
+                <div class="total">Итого: <span id="totalSum">0.00 ₴</span></div>
+            </div>
+
+            <!-- Поиск и добавление товаров -->
+            <div class="card">
+                <div class="card-header">🔍 Поиск и добавление товаров</div>
+                <div class="search-form">
+                    <div class="search-input-container">
+                        <input type="text" 
+                               class="search-input" 
+                               id="productSearch" 
+                               placeholder="Поиск по названию, коду товара или штрихкоду..."
+                               autocomplete="off">
+                        <span class="search-icon">🔍</span>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <button class="filter-btn active" data-filter="all">Все товары</button>
+                        <button class="filter-btn" data-filter="name">По названию</button>
+                        <button class="filter-btn" data-filter="code">По коду</button>
+                        <button class="filter-btn" data-filter="barcode">По штрихкоду</button>
+                    </div>
+                    
+                    <div class="search-results" id="searchResults">
+                        <div id="searchResultsList"></div>
+                    </div>
+                    
+                    <div class="quick-add-section">
+                        <div style="flex: 1;">
+                            <label class="form-label">Выбранный товар:</label>
+                            <div id="selectedProductInfo" style="
+                                padding: 10px 12px; 
+                                background: #e8f5e8; 
+                                border: 1px solid #c3e6cb; 
+                                border-radius: 6px; 
+                                font-size: 10.78px;
+                                color: #155724;
+                                min-height: 38px;
+                                display: flex;
+                                align-items: center;
+                            ">
+                                Товар не выбран
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Количество:</label>
+                            <input type="number" 
+                                   class="quantity-input" 
+                                   id="quickAddQuantity" 
+                                   value="1" 
+                                   min="1" 
+                                   max="999">
+                        </div>
+                        <button class="btn btn-success" 
+                                onclick="quickAddProduct()" 
+                                id="quickAddBtn" 
+                                disabled
+                                style="margin-top: 22px;">
+                            ➕ Добавить
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Дополнительные настройки -->
+            <div class="card">
+                <div class="card-header">⚙️ Дополнительные настройки</div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label class="form-label">Комментарий к заказу</label>
+                        <textarea class="form-input" id="orderComment" rows="3" placeholder="Комментарий к заказу"></textarea>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isPaid" onchange="updatePaymentStatus()">
+                        <label class="form-label" style="margin: 0; cursor: pointer;">Заказ оплачен</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопки действий -->
+            <div style="text-align: center; margin-top: 20px; padding-bottom: 20px;">
+                <button class="btn btn-primary" onclick="createCheck()" id="createBtn" style="margin-right: 10px;">
+                    ✅ Создать чек
+                </button>
+                <button class="btn" onclick="clearForm()" style="background: #6c757d; color: white; margin-right: 10px;">
+                    🧹 Очистить форму
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('🎯 Загрузка формы создания чека');
+        
+        // Конфигурация API
+        const API_BASE = 'https://791f243b8a8b.ngrok-free.app/api-proxy.php';
+        const PRODUCTS_API = 'https://791f243b8a8b.ngrok-free.app/api-proxy.php?route=products';
+        
+        // Глобальные переменные
+        let allProducts = [];
+        let selectedProduct = null;
+        let selectedProducts = []; // Массив выбранных товаров для чека
+        let searchTimeout = null;
+        let currentFilter = 'all';
+        let isPaid = false;
+
+        // Форматирование цены
+        function formatPrice(kopecks) {
+            return (parseInt(kopecks) / 100).toFixed(2) + ' ₴';
+        }
+
+        // Показать сообщение
+        function showMessage(message, type = 'info') {
+            const errorEl = document.getElementById('error');
+            const successEl = document.getElementById('success');
+            
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            
+            if (type === 'error' || type === 'warning') {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            } else if (type === 'success') {
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+                setTimeout(() => {
+                    successEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Загрузка всех товаров
+        async function loadAllProducts() {
+            try {
+                console.log('📦 Загружаем все товары...');
+                const response = await fetch(`${PRODUCTS_API}&path=products&limit=1000`, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                if (!response.ok) throw new Error(`Products API error: ${response.status}`);
+                
+                const data = await response.json();
+                if (data.success && data.data) {
+                    allProducts = data.data;
+                    console.log('✅ Загружено товаров:', allProducts.length);
+                }
+            } catch (error) {
+                console.warn('⚠️ Ошибка загрузки товаров:', error.message);
+                showMessage(`Не удалось загрузить товары: ${error.message}`, 'warning');
+            }
+        }
+
+        // Поиск товаров
+        function searchProducts(query) {
+            if (!query || query.length < 2) {
+                document.getElementById('searchResults').classList.remove('show');
+                return;
+            }
+            
+            query = query.toLowerCase().trim();
+            let results = allProducts.filter(product => {
+                switch (currentFilter) {
+                    case 'name':
+                        return product.product_name && product.product_name.toLowerCase().includes(query);
+                    case 'code':
+                        return product.product_code && product.product_code.toLowerCase().includes(query);
+                    case 'barcode':
+                        return product.barcode && product.barcode.toLowerCase().includes(query);
+                    default:
+                        return (product.product_name && product.product_name.toLowerCase().includes(query)) ||
+                               (product.product_code && product.product_code.toLowerCase().includes(query)) ||
+                               (product.barcode && product.barcode.toLowerCase().includes(query));
+                }
+            });
+            
+            results = results.slice(0, 50);
+            displaySearchResults(results);
+        }
+
+        // Отображение результатов поиска
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+            const list = document.getElementById('searchResultsList');
+            
+            if (results.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #8b9bc1;">Товары не найдены</div>';
+            } else {
+                let html = '';
+                results.forEach(product => {
+                    const price = formatPrice(product.price * 100);
+                    html += `
+                        <div class="search-result-item" onclick="selectProduct('${product.product_id}')">
+                            <div class="search-result-info">
+                                <div class="search-result-name">${product.product_name || `ID: ${product.product_id}`}</div>
+                                <div style="font-size: 9.24px; color: #8b9bc1;">ID: ${product.product_id} • Код: ${product.product_code || 'нет'}</div>
+                            </div>
+                            <div class="search-result-price">${price}</div>
+                        </div>
+                    `;
+                });
+                list.innerHTML = html;
+            }
+            
+            container.classList.add('show');
+        }
+
+        // Выбор товара
+        function selectProduct(productId) {
+            const product = allProducts.find(p => p.product_id === productId);
+            if (!product) return;
+            
+            selectedProduct = product;
+            const infoContainer = document.getElementById('selectedProductInfo');
+            const code = product.product_code ? ` (${product.product_code})` : '';
+            const price = formatPrice(product.price * 100);
+            
+            infoContainer.innerHTML = `
+                <strong>${product.product_name || `ID: ${product.product_id}`}${code}</strong><br>
+                <small style="color: #6c757d;">ID: ${product.product_id} • Цена: ${price}</small>
+            `;
+            
+            document.getElementById('quickAddBtn').disabled = false;
+            document.getElementById('searchResults').classList.remove('show');
+            document.getElementById('productSearch').value = '';
+        }
+
+        // Быстрое добавление товара
+        function quickAddProduct() {
+            if (!selectedProduct) {
+                showMessage('Выберите товар для добавления', 'warning');
+                return;
+            }
+            
+            const qty = parseInt(document.getElementById('quickAddQuantity').value);
+            if (qty < 1) {
+                showMessage('Количество должно быть больше 0', 'warning');
+                return;
+            }
+            
+            // Проверяем, не добавлен ли уже этот товар
+            const existing = selectedProducts.find(p => p.product_id === selectedProduct.product_id);
+            if (existing) {
+                existing.quantity += qty;
+            } else {
+                selectedProducts.push({
+                    product_id: selectedProduct.product_id,
+                    quantity: qty,
+                    price: selectedProduct.price * 100, // В копейках
+                    name: selectedProduct.product_name
+                });
+            }
+            
+            // Сброс
+            selectedProduct = null;
+            document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
+            document.getElementById('quickAddBtn').disabled = true;
+            document.getElementById('quickAddQuantity').value = 1;
+            
+            displaySelectedProducts();
+            showMessage(`Товар "${selectedProduct?.name || 'товар'}" добавлен`, 'success');
+        }
+
+        // Отображение выбранных товаров
+        function displaySelectedProducts() {
+            const container = document.getElementById('productsList');
+            let html = '';
+            let totalSum = 0;
+            
+            if (selectedProducts.length === 0) {
+                html = '<div class="product" style="justify-content: center; color: #8b9bc1;">Товары не добавлены</div>';
+            } else {
+                selectedProducts.forEach((product, index) => {
+                    const totalPrice = product.price * product.quantity;
+                    totalSum += totalPrice;
+                    
+                    html += `
+                        <div class="product">
+                            <div class="product-name">
+                                <div>${product.name || `ID: ${product.product_id}`}</div>
+                                <div class="product-id">ID: ${product.product_id} • ${formatPrice(product.price)} за шт.</div>
+                            </div>
+                            <input type="number" class="quantity" value="${product.quantity}" min="1" 
+                                   onchange="updateProductQuantity(${index}, this.value)">
+                            <div class="price">${formatPrice(totalPrice)}</div>
+                            <button class="btn btn-danger" onclick="removeProduct(${index})" title="Удалить">×</button>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = html;
+            document.getElementById('totalSum').textContent = formatPrice(totalSum);
+        }
+
+        // Обновление количества товара
+        function updateProductQuantity(index, newQuantity) {
+            const qty = parseInt(newQuantity);
+            if (qty < 1) return;
+            selectedProducts[index].quantity = qty;
+            displaySelectedProducts();
+        }
+
+        // Удаление товара
+        function removeProduct(index) {
+            selectedProducts.splice(index, 1);
+            displaySelectedProducts();
+            showMessage('Товар удален', 'success');
+        }
+
+        // Переключение полей доставки
+        function toggleDeliveryFields() {
+            const serviceMode = document.getElementById('serviceMode').value;
+            const deliveryFields = document.getElementById('deliveryFields');
+            if (serviceMode === '3') {
+                deliveryFields.classList.add('show');
+            } else {
+                deliveryFields.classList.remove('show');
+            }
+        }
+
+        // Обновление статуса оплаты
+        function updatePaymentStatus() {
+            isPaid = document.getElementById('isPaid').checked;
+        }
+
+        // Создание чека
+        async function createCheck() {
+            // Валидация
+            const firstName = document.getElementById('clientFirstName').value.trim();
+            const phone = document.getElementById('clientPhone').value.trim();
+            
+            if (!firstName) {
+                showMessage('Введите имя клиента', 'error');
+                return;
+            }
+            
+            if (!phone) {
+                showMessage('Введите телефон клиента', 'error');
+                return;
+            }
+            
+            if (selectedProducts.length === 0) {
+                showMessage('Добавьте хотя бы один товар', 'error');
+                return;
+            }
+            
+            // Подготовка данных
+            const serviceMode = parseInt(document.getElementById('serviceMode').value);
+            const lastName = document.getElementById('clientLastName').value.trim();
+            const email = document.getElementById('clientEmail').value.trim();
+            const comment = document.getElementById('orderComment').value.trim();
+            const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
+            const deliveryAdditionalInfo = document.getElementById('deliveryAdditionalInfo').value.trim();
+            
+            // Подготовка товаров
+            const products = selectedProducts.map(p => ({
+                id: parseInt(p.product_id),
+                count: p.quantity,
+                price: p.price
+            }));
+            
+            // Подготовка данных клиента
+            const clientData = {
+                firstName: firstName,
+                lastName: lastName || '',
+                phone: phone,
+                email: email || ''
+            };
+            
+            if (serviceMode === 3 && deliveryAddress) {
+                clientData.address = {
+                    street: deliveryAddress,
+                    additionalInfo: deliveryAdditionalInfo || ''
+                };
+            }
+            
+            // Подготовка данных заказа
+            const orderData = {
+                spotId: 1,
+                guestsCount: 1,
+                serviceMode: serviceMode,
+                autoAccept: true,
+                products: products
+            };
+            
+            if (comment) {
+                orderData.comment = comment;
+            }
+            
+            if (clientData.firstName || clientData.phone) {
+                orderData.client = clientData;
+            }
+            
+            // Добавляем оплату, если заказ оплачен
+            if (isPaid) {
+                const totalSum = selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+                orderData.payments = [{ sum: totalSum }];
+            }
+            
+            // Данные доставки (если serviceMode = 3)
+            if (serviceMode === 3 && deliveryAddress) {
+                orderData.delivery = {
+                    address: {
+                        street: deliveryAddress,
+                        additionalInfo: deliveryAdditionalInfo || ''
+                    }
+                };
+            }
+            
+            console.log('📤 Создаем чек с данными:', orderData);
+            
+            // Отправка запроса
+            const createBtn = document.getElementById('createBtn');
+            const originalText = createBtn.textContent;
+            createBtn.disabled = true;
+            createBtn.textContent = '⏳ Создание...';
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch(API_BASE, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({
+                        endpoint: 'orders',
+                        order_data: orderData
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('📥 Ответ от API:', result);
+                
+                if (result.error) {
+                    throw new Error(result.message || JSON.stringify(result.error));
+                }
+                
+                const orderId = result.response?.id || result.response;
+                if (orderId) {
+                    showMessage(`✅ Чек успешно создан! ID: ${orderId}`, 'success');
+                    
+                    // Отправляем сообщение родительскому окну (если открыто из iframe)
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'poster-check-created',
+                            orderId: orderId,
+                            message: 'Чек успешно создан'
+                        }, '*');
+                    }
+                    
+                    // Очищаем форму через 2 секунды
+                    setTimeout(() => {
+                        clearForm();
+                        showMessage('Форма очищена. Можно создать новый чек.', 'success');
+                    }, 2000);
+                } else {
+                    throw new Error('Не получен ID созданного чека');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка создания чека:', error);
+                showMessage('Ошибка создания чека: ' + error.message, 'error');
+            } finally {
+                createBtn.disabled = false;
+                createBtn.textContent = originalText;
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Очистка формы
+        function clearForm() {
+            document.getElementById('clientFirstName').value = '';
+            document.getElementById('clientLastName').value = '';
+            document.getElementById('clientPhone').value = '';
+            document.getElementById('clientEmail').value = '';
+            document.getElementById('serviceMode').value = '1';
+            document.getElementById('deliveryAddress').value = '';
+            document.getElementById('deliveryAdditionalInfo').value = '';
+            document.getElementById('orderComment').value = '';
+            document.getElementById('isPaid').checked = false;
+            selectedProducts = [];
+            selectedProduct = null;
+            document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
+            document.getElementById('quickAddBtn').disabled = true;
+            toggleDeliveryFields();
+            displaySelectedProducts();
+        }
+
+        // Инициализация поиска
+        function initializeSearch() {
+            const searchInput = document.getElementById('productSearch');
+            
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value;
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (query.length >= 2) {
+                        searchProducts(query);
+                    } else {
+                        document.getElementById('searchResults').classList.remove('show');
+                    }
+                }, 300);
+            });
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentFilter = this.dataset.filter;
+                    const query = searchInput.value;
+                    if (query.length >= 2) {
+                        searchProducts(query);
+                    }
+                });
+            });
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Инициализация формы создания чека');
+            initializeSearch();
+            loadAllProducts();
+            toggleDeliveryFields();
+        });
+    </script>
+</body>
+</html>
