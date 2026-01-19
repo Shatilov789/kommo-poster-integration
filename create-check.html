@@ -594,6 +594,7 @@
             } else {
                 selectedProducts.push({
                     product_id: selectedProduct.product_id,
+                    product_code: selectedProduct.product_code || '', // Сохраняем product_code для тегов
                     quantity: qty,
                     price: selectedProduct.price * 100, // В копейках
                     name: selectedProduct.product_name
@@ -790,11 +791,19 @@
                 if (orderId) {
                     showMessage(`✅ Чек успешно создан! ID: ${orderId}`, 'success');
                     
+                    // Извлекаем SKU из выбранных товаров для тегов
+                    const skus = selectedProducts
+                        .map(p => p.product_code)
+                        .filter(code => code && code.trim() !== '');
+                    
+                    console.log('🏷️ SKU для тегов:', skus);
+                    
                     // Отправляем сообщение родительскому окну (если открыто из iframe)
                     if (window.parent !== window) {
                         window.parent.postMessage({
                             type: 'poster-check-created',
                             orderId: orderId,
+                            skus: skus,
                             message: 'Чек успешно создан'
                         }, '*');
                     }
