@@ -601,6 +601,9 @@
                 });
             }
             
+            // Сохраняем имя товара для сообщения перед сбросом
+            const addedProductName = selectedProduct.product_name || 'товар';
+            
             // Сброс
             selectedProduct = null;
             document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
@@ -608,7 +611,7 @@
             document.getElementById('quickAddQuantity').value = 1;
             
             displaySelectedProducts();
-            showMessage(`Товар "${selectedProduct?.name || 'товар'}" добавлен`, 'success');
+            showMessage(`Товар "${addedProductName}" добавлен`, 'success');
         }
 
         // Отображение выбранных товаров
@@ -704,11 +707,25 @@
             const deliveryAdditionalInfo = document.getElementById('deliveryAdditionalInfo').value.trim();
             
             // Подготовка товаров
-            const products = selectedProducts.map(p => ({
-                id: parseInt(p.product_id),
-                count: p.quantity,
-                price: p.price
-            }));
+            const products = selectedProducts.map((p, index) => {
+                const productId = parseInt(p.product_id);
+                
+                // Валидация product_id
+                if (!p.product_id || isNaN(productId) || productId <= 0) {
+                    console.error(`❌ Ошибка: невалидный product_id для товара ${index}:`, p);
+                    throw new Error(`Товар "${p.name || 'Без названия'}" имеет невалидный ID: ${p.product_id}`);
+                }
+                
+                console.log(`📦 Товар ${index + 1}: ID=${productId}, количество=${p.quantity}, цена=${p.price}`);
+                
+                return {
+                    id: productId,
+                    count: p.quantity || 1,
+                    price: (p.price || 0) / 100  // Преобразуем из копеек в гривны (как в poster.py)
+                };
+            });
+            
+            console.log('📦 Подготовлено товаров для чека:', products);
             
             // Подготовка данных клиента
             const clientData = {
