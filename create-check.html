@@ -718,8 +718,9 @@
                 
                 console.log(`📦 Товар ${index + 1}: ID=${productId}, количество=${p.quantity}, цена=${p.price}`);
                 
+                // Poster API для orders ожидает product_id (не id!)
                 return {
-                    id: productId,
+                    product_id: productId,
                     count: p.quantity || 1,
                     price: (p.price || 0) / 100  // Преобразуем из копеек в гривны (как в poster.py)
                 };
