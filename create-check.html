@@ -469,9 +469,10 @@
                 const response = await fetch(url, {
                     method: 'GET',
                     mode: 'cors',
+                    credentials: 'omit',
                     headers: { 
-                        'ngrok-skip-browser-warning': 'true',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'ngrok-skip-browser-warning': 'true'
                     }
                 });
                 
@@ -788,8 +789,11 @@
             try {
                 const response = await fetch(API_BASE, {
                     method: 'POST',
+                    mode: 'cors',
+                    credentials: 'omit',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'ngrok-skip-browser-warning': 'true'
                     },
                     body: JSON.stringify({
