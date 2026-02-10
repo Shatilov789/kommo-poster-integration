@@ -745,7 +745,7 @@
             try {
                 console.log('📦 Загружаем все товары для поиска...');
                 
-                const response = await fetch(`${PRODUCTS_API}&path=products&limit=1000`, {
+                const response = await fetch(`${PRODUCTS_API}&path=products&limit=10000`, {
                     headers: {
                         'ngrok-skip-browser-warning': 'true'
                     }
@@ -1625,6 +1625,7 @@
     </script>
 </body>
 </html>
+
 
 
 
