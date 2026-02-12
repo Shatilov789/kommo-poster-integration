@@ -480,7 +480,7 @@
                         <div id="searchResultsList"></div>
                     </div>
                     
-                    <!-- НОВЫЙ СПИСОК ВЫБРАННЫХ ТОВАРОВ -->
+                    <!-- СПИСОК ВЫБРАННЫХ ТОВАРОВ -->
                     <div id="selectedProductsList" style="margin-bottom: 15px; display: none;">
                         <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 10.01px; color: #555;">
                             📋 Выбранные товары для добавления:
@@ -489,59 +489,9 @@
                             border: 1px solid #d1d9e0;
                             border-radius: 6px;
                             background: white;
-                            max-height: 200px;
+                            max-height: 300px;
                             overflow-y: auto;
                         "></div>
-                    </div>
-                    
-                    <!-- Быстрое добавление -->
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <div style="display: flex; gap: 10px; align-items: end;">
-                            <div style="flex: 1;">
-                                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 10.01px; color: #555;">
-                                    Последний выбранный товар:
-                                </label>
-                                <div id="selectedProductInfo" style="
-                                    padding: 10px 12px; 
-                                    background: #f8f9fa; 
-                                    border: 1px solid #d1d9e0; 
-                                    border-radius: 6px; 
-                                    font-size: 10.78px;
-                                    color: #333;
-                                    min-height: 38px;
-                                    display: flex;
-                                    align-items: center;
-                                ">
-                                    Товар не выбран
-                                </div>
-                            </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 10.01px; color: #555;">
-                                    Количество:
-                                </label>
-                                <input type="number" 
-                                       class="quantity-input" 
-                                       id="quickAddQuantity" 
-                                       value="1" 
-                                       min="1" 
-                                       max="999">
-                            </div>
-                            <button class="btn btn-success" 
-                                    onclick="addSelectedToList()" 
-                                    id="addToListBtn" 
-                                    disabled
-                                    style="margin-top: 22px;">
-                                ➕ В список
-                            </button>
-                        </div>
-                        
-                        <button class="btn btn-success" 
-                                onclick="addAllProductsToCheck()" 
-                                id="addAllBtn" 
-                                disabled
-                                style="width: 100%;">
-                            ✓ Добавить все в чек
-                        </button>
                     </div>
                 </div>
             </div>
@@ -569,8 +519,7 @@
         let transaction = null;
         let productsDB = {};
         let allProducts = []; // Все товары для поиска
-        let selectedProduct = null; // Выбранный товар для добавления
-        let selectedProductsList = []; // НОВЫЙ: Список выбранных товаров
+        let selectedProductsList = []; // Список выбранных товаров
         let searchTimeout = null; // Таймаут для поиска
         let currentFilter = 'all'; // Текущий фильтр поиска
         let changes = { added: [], modified: [], removed: [], reordered: [] };
@@ -618,66 +567,17 @@
             console.log(`📢 ${type.toUpperCase()}: ${message}`);
         }
 
-        // НОВАЯ ФУНКЦИЯ: Добавление товара в список выбранных
-        function addSelectedToList() {
-            if (!selectedProduct) {
-                showMessage('Выберите товар для добавления', 'warning');
-                return;
-            }
-            
-            const quantityInput = document.getElementById('quickAddQuantity');
-            const qty = parseInt(quantityInput.value);
-            
-            if (qty < 1) {
-                showMessage('Количество должно быть больше 0', 'warning');
-                return;
-            }
-            
-            // Проверяем, не добавлен ли уже этот товар в список
-            const existingIndex = selectedProductsList.findIndex(item => item.product_id === selectedProduct.product_id);
-            
-            if (existingIndex >= 0) {
-                // Увеличиваем количество существующего товара
-                selectedProductsList[existingIndex].quantity += qty;
-                showMessage(`Количество товара "${selectedProduct.product_name}" увеличено`, 'success');
-            } else {
-                // Добавляем новый товар в список
-                selectedProductsList.push({
-                    product_id: selectedProduct.product_id,
-                    product_name: selectedProduct.product_name,
-                    product_code: selectedProduct.product_code,
-                    price: selectedProduct.price,
-                    quantity: qty
-                });
-                showMessage(`Товар "${selectedProduct.product_name}" добавлен в список`, 'success');
-            }
-            
-            // Сброс выбранного товара
-            selectedProduct = null;
-            document.getElementById('selectedProductInfo').innerHTML = '<span style="color: #8b9bc1;">Выберите следующий товар...</span>';
-            document.getElementById('addToListBtn').disabled = true;
-            quantityInput.value = 1;
-            
-            // Обновляем отображение списка
-            updateSelectedProductsList();
-        }
-
         // НОВАЯ ФУНКЦИЯ: Обновление отображения списка выбранных товаров
         function updateSelectedProductsList() {
             const listContainer = document.getElementById('selectedProductsList');
             const itemsContainer = document.getElementById('selectedProductsItems');
-            const addAllBtn = document.getElementById('addAllBtn');
             
             if (selectedProductsList.length === 0) {
                 listContainer.style.display = 'none';
-                addAllBtn.disabled = true;
-                addAllBtn.textContent = '✓ Добавить все в чек';
                 return;
             }
             
             listContainer.style.display = 'block';
-            addAllBtn.disabled = false;
-            addAllBtn.textContent = `✓ Добавить все в чек (${selectedProductsList.length} ${selectedProductsList.length === 1 ? 'товар' : 'товара'})`;
             
             let html = '';
             selectedProductsList.forEach((item, index) => {
@@ -690,10 +590,16 @@
                         <div class="selected-product-item-info">
                             <div class="selected-product-item-name">${item.product_name}${code}</div>
                             <div class="selected-product-item-details">
-                                ${price} × ${item.quantity} = ${totalPrice}
+                                ${price} за шт. = ${totalPrice}
                             </div>
                         </div>
-                        <div class="selected-product-item-qty">${item.quantity} шт.</div>
+                        <input type="number" 
+                               class="quantity-input" 
+                               value="${item.quantity}" 
+                               min="1" 
+                               max="999"
+                               onchange="updateSelectedProductQuantity(${index}, this.value)"
+                               style="width: 70px; margin-right: 10px;">
                         <button class="btn-remove-from-list" onclick="removeFromSelectedList(${index})" title="Удалить из списка">
                             ×
                         </button>
@@ -704,6 +610,16 @@
             itemsContainer.innerHTML = html;
         }
 
+        // НОВАЯ ФУНКЦИЯ: Изменение количества в списке выбранных
+        function updateSelectedProductQuantity(index, newQuantity) {
+            const qty = parseInt(newQuantity);
+            if (qty < 1) return;
+            
+            selectedProductsList[index].quantity = qty;
+            console.log('Изменено количество в списке:', selectedProductsList[index].product_name, qty);
+            updateSelectedProductsList();
+        }
+
         // НОВАЯ ФУНКЦИЯ: Удаление товара из списка выбранных
         function removeFromSelectedList(index) {
             const removedItem = selectedProductsList[index];
@@ -712,34 +628,40 @@
             updateSelectedProductsList();
         }
 
-        // НОВАЯ ФУНКЦИЯ: Добавление всех товаров из списка в чек
-        function addAllProductsToCheck() {
-            if (selectedProductsList.length === 0) {
-                showMessage('Список выбранных товаров пуст', 'warning');
-                return;
+        // Выбор товара из результатов поиска (ОБНОВЛЕНО - автоматически добавляет в список)
+        function selectProduct(productId) {
+            const product = allProducts.find(p => p.product_id === productId);
+            if (!product) return;
+            
+            // Проверяем, не добавлен ли уже этот товар в список
+            const existingIndex = selectedProductsList.findIndex(item => item.product_id === product.product_id);
+            
+            if (existingIndex >= 0) {
+                // Увеличиваем количество существующего товара
+                selectedProductsList[existingIndex].quantity += 1;
+                showMessage(`Количество "${product.product_name}" увеличено до ${selectedProductsList[existingIndex].quantity}`, 'success');
+            } else {
+                // Добавляем новый товар в список
+                selectedProductsList.push({
+                    product_id: product.product_id,
+                    product_name: product.product_name,
+                    product_code: product.product_code,
+                    price: product.price,
+                    quantity: 1
+                });
+                showMessage(`Товар "${product.product_name}" добавлен в список`, 'success');
             }
             
-            // Добавляем все товары в changes.added
-            selectedProductsList.forEach(item => {
-                const existingAdded = changes.added.find(added => added.product_id === item.product_id);
-                if (existingAdded) {
-                    existingAdded.quantity += item.quantity;
-                } else {
-                    changes.added.push({
-                        product_id: item.product_id,
-                        quantity: item.quantity
-                    });
-                }
-            });
-            
-            showMessage(`Добавлено товаров в чек: ${selectedProductsList.length}`, 'success');
-            
-            // Очищаем список
-            selectedProductsList = [];
+            // Обновляем отображение списка
             updateSelectedProductsList();
             
-            // Перерисовываем чек
-            displayTransaction();
+            // Скрываем результаты поиска
+            hideSearchResults();
+            
+            // Очищаем поле поиска
+            document.getElementById('productSearch').value = '';
+            
+            console.log('✅ Товар добавлен в список:', product);
         }
 
         // ПРОСТЫЕ DRAG & DROP ФУНКЦИИ
@@ -1563,6 +1485,26 @@
         }
 
         function saveChanges() {
+            // Автоматически добавляем товары из списка выбранных в changes.added
+            if (selectedProductsList.length > 0) {
+                console.log('📋 Добавляем товары из списка в изменения перед сохранением');
+                selectedProductsList.forEach(item => {
+                    const existingAdded = changes.added.find(added => added.product_id === item.product_id);
+                    if (existingAdded) {
+                        existingAdded.quantity += item.quantity;
+                    } else {
+                        changes.added.push({
+                            product_id: item.product_id,
+                            quantity: item.quantity
+                        });
+                    }
+                });
+                
+                // Очищаем список после добавления
+                selectedProductsList = [];
+                updateSelectedProductsList();
+            }
+            
             const total = changes.added.length + changes.modified.length + changes.removed.length;
             if (total === 0) {
                 showMessage('Нет изменений для сохранения', 'warning');
