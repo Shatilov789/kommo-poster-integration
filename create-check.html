@@ -162,30 +162,6 @@
             font-size: 16px;
             pointer-events: none;
         }
-        .search-filters {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .filter-btn {
-            padding: 6px 12px;
-            border: 1px solid #d1d9e0;
-            background: white;
-            border-radius: 20px;
-            font-size: 9.24px;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #6c757d;
-        }
-        .filter-btn.active {
-            background: #3e5a6b;
-            color: white;
-            border-color: #3e5a6b;
-        }
-        .filter-btn:hover {
-            border-color: #3e5a6b;
-        }
         .search-results {
             max-height: 300px;
             overflow-y: auto;
@@ -223,19 +199,6 @@
             color: #27ae60;
             font-size: 10.78px;
         }
-        .quick-add-section {
-            display: flex;
-            gap: 10px;
-            align-items: end;
-        }
-        .quantity-input {
-            width: 80px;
-            padding: 8px 12px;
-            border: 1px solid #d1d9e0;
-            border-radius: 6px;
-            font-size: 10.78px;
-            text-align: center;
-        }
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -245,12 +208,6 @@
             width: 18px;
             height: 18px;
             cursor: pointer;
-        }
-        .delivery-fields {
-            display: none;
-        }
-        .delivery-fields.show {
-            display: block;
         }
     </style>
 </head>
@@ -292,32 +249,6 @@
                 </div>
             </div>
 
-            <!-- Режим обслуживания и доставка -->
-            <div class="card">
-                <div class="card-header">🚚 Режим обслуживания</div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label class="form-label">Тип обслуживания *</label>
-                        <select class="form-select" id="serviceMode" onchange="toggleDeliveryFields()">
-                            <option value="1">Здесь (в заведении)</option>
-                            <option value="2">На вынос</option>
-                            <option value="3">Доставка</option>
-                        </select>
-                    </div>
-                    
-                    <div class="delivery-fields" id="deliveryFields">
-                        <div class="form-group">
-                            <label class="form-label">Адрес доставки</label>
-                            <input type="text" class="form-input" id="deliveryAddress" placeholder="Город, улица, дом">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Дополнительная информация</label>
-                            <input type="text" class="form-input" id="deliveryAdditionalInfo" placeholder="Квартира, подъезд и т.д.">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Товары в чеке -->
             <div class="card">
                 <div class="card-header">📦 Товары в чеке</div>
@@ -342,50 +273,12 @@
                         <span class="search-icon">🔍</span>
                     </div>
                     
-                    <div class="search-filters">
-                        <button class="filter-btn active" data-filter="all">Все товары</button>
-                        <button class="filter-btn" data-filter="name">По названию</button>
-                        <button class="filter-btn" data-filter="code">По коду</button>
-                        <button class="filter-btn" data-filter="barcode">По штрихкоду</button>
-                    </div>
-                    
                     <div class="search-results" id="searchResults">
                         <div id="searchResultsList"></div>
                     </div>
                     
-                    <div class="quick-add-section">
-                        <div style="flex: 1;">
-                            <label class="form-label">Выбранный товар:</label>
-                            <div id="selectedProductInfo" style="
-                                padding: 10px 12px; 
-                                background: #e8f5e8; 
-                                border: 1px solid #c3e6cb; 
-                                border-radius: 6px; 
-                                font-size: 10.78px;
-                                color: #155724;
-                                min-height: 38px;
-                                display: flex;
-                                align-items: center;
-                            ">
-                                Товар не выбран
-                            </div>
-                        </div>
-                        <div>
-                            <label class="form-label">Количество:</label>
-                            <input type="number" 
-                                   class="quantity-input" 
-                                   id="quickAddQuantity" 
-                                   value="1" 
-                                   min="1" 
-                                   max="999">
-                        </div>
-                        <button class="btn btn-success" 
-                                onclick="quickAddProduct()" 
-                                id="quickAddBtn" 
-                                disabled
-                                style="margin-top: 22px;">
-                            ➕ Добавить
-                        </button>
+                    <div style="font-size: 9.24px; color: #8b9bc1; text-align: center; padding: 8px;">
+                        💡 Нажмите на товар в результатах поиска — он сразу добавится в чек
                     </div>
                 </div>
             </div>
@@ -426,10 +319,8 @@
         
         // Глобальные переменные
         let allProducts = [];
-        let selectedProduct = null;
         let selectedProducts = []; // Массив выбранных товаров для чека
         let searchTimeout = null;
-        let currentFilter = 'all';
         let isPaid = false;
 
         // Форматирование цены
@@ -509,20 +400,11 @@
             }
             
             query = query.toLowerCase().trim();
-            let results = allProducts.filter(product => {
-                switch (currentFilter) {
-                    case 'name':
-                        return product.product_name && product.product_name.toLowerCase().includes(query);
-                    case 'code':
-                        return product.product_code && product.product_code.toLowerCase().includes(query);
-                    case 'barcode':
-                        return product.barcode && product.barcode.toLowerCase().includes(query);
-                    default:
-                        return (product.product_name && product.product_name.toLowerCase().includes(query)) ||
-                               (product.product_code && product.product_code.toLowerCase().includes(query)) ||
-                               (product.barcode && product.barcode.toLowerCase().includes(query));
-                }
-            });
+            let results = allProducts.filter(product =>
+                (product.product_name && product.product_name.toLowerCase().includes(query)) ||
+                (product.product_code && product.product_code.toLowerCase().includes(query)) ||
+                (product.barcode && product.barcode.toLowerCase().includes(query))
+            );
             
             results = results.slice(0, 50);
             displaySearchResults(results);
@@ -555,64 +437,29 @@
             container.classList.add('show');
         }
 
-        // Выбор товара
+        // Выбор товара — сразу добавляем в чек
         function selectProduct(productId) {
             const product = allProducts.find(p => p.product_id === productId);
             if (!product) return;
-            
-            selectedProduct = product;
-            const infoContainer = document.getElementById('selectedProductInfo');
-            const code = product.product_code ? ` (${product.product_code})` : '';
-            const price = formatPrice(product.price * 100);
-            
-            infoContainer.innerHTML = `
-                <strong>${product.product_name || `ID: ${product.product_id}`}${code}</strong><br>
-                <small style="color: #6c757d;">ID: ${product.product_id} • Цена: ${price}</small>
-            `;
-            
-            document.getElementById('quickAddBtn').disabled = false;
-            document.getElementById('searchResults').classList.remove('show');
-            document.getElementById('productSearch').value = '';
-        }
 
-        // Быстрое добавление товара
-        function quickAddProduct() {
-            if (!selectedProduct) {
-                showMessage('Выберите товар для добавления', 'warning');
-                return;
-            }
-            
-            const qty = parseInt(document.getElementById('quickAddQuantity').value);
-            if (qty < 1) {
-                showMessage('Количество должно быть больше 0', 'warning');
-                return;
-            }
-            
             // Проверяем, не добавлен ли уже этот товар
-            const existing = selectedProducts.find(p => p.product_id === selectedProduct.product_id);
+            const existing = selectedProducts.find(p => p.product_id === product.product_id);
             if (existing) {
-                existing.quantity += qty;
+                existing.quantity += 1;
             } else {
                 selectedProducts.push({
-                    product_id: selectedProduct.product_id,
-                    product_code: selectedProduct.product_code || '', // Сохраняем product_code для тегов
-                    quantity: qty,
-                    price: selectedProduct.price * 100, // В копейках
-                    name: selectedProduct.product_name
+                    product_id: product.product_id,
+                    product_code: product.product_code || '', // Сохраняем product_code для тегов
+                    quantity: 1,
+                    price: product.price * 100, // В копейках
+                    name: product.product_name
                 });
             }
-            
-            // Сохраняем имя товара для сообщения перед сбросом
-            const addedProductName = selectedProduct.product_name || 'товар';
-            
-            // Сброс
-            selectedProduct = null;
-            document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
-            document.getElementById('quickAddBtn').disabled = true;
-            document.getElementById('quickAddQuantity').value = 1;
-            
+
+            document.getElementById('searchResults').classList.remove('show');
+            document.getElementById('productSearch').value = '';
             displaySelectedProducts();
-            showMessage(`Товар "${addedProductName}" добавлен`, 'success');
+            showMessage(`Товар "${product.product_name || 'товар'}" добавлен`, 'success');
         }
 
         // Отображение выбранных товаров
@@ -629,9 +476,12 @@
                     totalSum += totalPrice;
                     
                     html += `
-                        <div class="product">
+                        <div class="product" style="background: #fff9e6; border-left: 4px solid #ffc107;">
                             <div class="product-name">
-                                <div>${product.name || `ID: ${product.product_id}`}</div>
+                                <div>
+                                    ${product.name || `ID: ${product.product_id}`}
+                                    <span style="background: #ffc107; color: #333; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 3px;">НОВЫЙ</span>
+                                </div>
                                 <div class="product-id">ID: ${product.product_id} • ${formatPrice(product.price)} за шт.</div>
                             </div>
                             <input type="number" class="quantity" value="${product.quantity}" min="1" 
@@ -662,17 +512,6 @@
             showMessage('Товар удален', 'success');
         }
 
-        // Переключение полей доставки
-        function toggleDeliveryFields() {
-            const serviceMode = document.getElementById('serviceMode').value;
-            const deliveryFields = document.getElementById('deliveryFields');
-            if (serviceMode === '3') {
-                deliveryFields.classList.add('show');
-            } else {
-                deliveryFields.classList.remove('show');
-            }
-        }
-
         // Обновление статуса оплаты
         function updatePaymentStatus() {
             isPaid = document.getElementById('isPaid').checked;
@@ -700,12 +539,10 @@
             }
             
             // Подготовка данных
-            const serviceMode = parseInt(document.getElementById('serviceMode').value);
+            const serviceMode = 1; // Фиксированный режим: "Здесь (в заведении)"
             const lastName = document.getElementById('clientLastName').value.trim();
             const email = document.getElementById('clientEmail').value.trim();
             const comment = document.getElementById('orderComment').value.trim();
-            const deliveryAddress = document.getElementById('deliveryAddress').value.trim();
-            const deliveryAdditionalInfo = document.getElementById('deliveryAdditionalInfo').value.trim();
             
             // Подготовка товаров
             const products = selectedProducts.map((p, index) => {
@@ -737,13 +574,6 @@
                 email: email || ''
             };
             
-            if (serviceMode === 3 && deliveryAddress) {
-                clientData.address = {
-                    street: deliveryAddress,
-                    additionalInfo: deliveryAdditionalInfo || ''
-                };
-            }
-            
             // Подготовка данных заказа
             const orderData = {
                 spotId: 1,
@@ -765,16 +595,6 @@
             if (isPaid) {
                 const totalSum = selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
                 orderData.payments = [{ sum: totalSum }];
-            }
-            
-            // Данные доставки (если serviceMode = 3)
-            if (serviceMode === 3 && deliveryAddress) {
-                orderData.delivery = {
-                    address: {
-                        street: deliveryAddress,
-                        additionalInfo: deliveryAdditionalInfo || ''
-                    }
-                };
             }
             
             console.log('📤 Создаем чек с данными:', orderData);
@@ -854,16 +674,9 @@
             document.getElementById('clientLastName').value = '';
             document.getElementById('clientPhone').value = '';
             document.getElementById('clientEmail').value = '';
-            document.getElementById('serviceMode').value = '1';
-            document.getElementById('deliveryAddress').value = '';
-            document.getElementById('deliveryAdditionalInfo').value = '';
             document.getElementById('orderComment').value = '';
             document.getElementById('isPaid').checked = false;
             selectedProducts = [];
-            selectedProduct = null;
-            document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
-            document.getElementById('quickAddBtn').disabled = true;
-            toggleDeliveryFields();
             displaySelectedProducts();
         }
 
@@ -883,17 +696,6 @@
                 }, 300);
             });
             
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    currentFilter = this.dataset.filter;
-                    const query = searchInput.value;
-                    if (query.length >= 2) {
-                        searchProducts(query);
-                    }
-                });
-            });
         }
 
         // Инициализация
@@ -901,7 +703,6 @@
             console.log('🚀 Инициализация формы создания чека');
             initializeSearch();
             loadAllProducts();
-            toggleDeliveryFields();
         });
     </script>
 </body>
