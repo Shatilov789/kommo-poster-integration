@@ -1034,22 +1034,25 @@
         
         async function updateKommoTags() {
                 try {
-                    const skus = getCurrentSKUs();
-                    if (skus.length === 0) {
-                        console.log('🏷️ Нет SKU для обновления Kommo');
+                    const tagChanges = getTagChanges();
+                    
+                    if (tagChanges.add.length === 0 && tagChanges.remove.length === 0) {
+                        console.log('🏷️ Нет изменений тегов для Kommo');
                         return;
                     }
                     
-                    console.log('🏷️ Обновляем теги Kommo для SKU:', skus);
+                    console.log('🏷️ Обновляем теги Kommo:', tagChanges);
                     
                     const requestData = { 
                         transaction_id: transactionId, 
-                        skus: skus 
+                        skus_to_add: tagChanges.add,
+                        skus_to_remove: tagChanges.remove
                     };
                     console.log('📤 Отправляем запрос к Kommo:', requestData);
                     
                     const response = await fetch(`${API_BASE}?action=update_kommo_tags`, {
                         method: 'POST',
+                        mode: 'cors',
                         headers: { 
                             'Content-Type': 'application/json',
                             'ngrok-skip-browser-warning': 'true'
@@ -1072,7 +1075,7 @@
                     
                     if (result.success) {
                         console.log('✅ Теги Kommo обновлены:', result);
-                        showMessage(`🏷️ Kommo: удалено ${result.tags_removed || 0}, добавлено ${result.tags_added || 0} тегов`, 'success');
+                        showMessage(`🏷️ Kommo: +${result.tags_added || 0} / -${result.tags_removed || 0} тегов`, 'success');
                     } else {
                         console.warn('⚠️ Ошибка Kommo:', result.error);
                         showMessage(`⚠️ Kommo: ${result.error}`, 'warning');
@@ -1083,33 +1086,31 @@
                     showMessage(`❌ Kommo: ${e.message}`, 'warning');
                 }
             }
-        function getCurrentSKUs() {
-            const skus = [];
+        // Возвращает SKU для добавления и удаления тегов (не перезапись!)
+        function getTagChanges() {
+            const skusToAdd = [];
+            const skusToRemove = [];
             
-            // Из текущих товаров транзакции
-            if (transaction?.products) {
-                transaction.products.forEach(product => {
-                    const quantity = parseFloat(product.num);
-                    const isRemoved = changes.removed.some(r => r.product_id === product.product_id);
-                    
-                    if (quantity > 0 && !isRemoved) {
-                        const productInfo = productsDB[product.product_id] || allProducts.find(p => p.product_id === product.product_id);
-                        if (productInfo?.product_code) {
-                            skus.push(productInfo.product_code);
-                        }
-                    }
-                });
-            }
-            
-            // Из добавленных товаров
+            // SKU добавленных товаров → добавить теги
             changes.added.forEach(item => {
                 const productInfo = allProducts.find(p => p.product_id === item.product_id);
                 if (productInfo?.product_code) {
-                    skus.push(productInfo.product_code);
+                    skusToAdd.push(productInfo.product_code);
                 }
             });
             
-            return [...new Set(skus)]; // Убираем дубликаты
+            // SKU удалённых товаров → удалить теги
+            changes.removed.forEach(item => {
+                const productInfo = productsDB[item.product_id] || allProducts.find(p => p.product_id === item.product_id);
+                if (productInfo?.product_code) {
+                    skusToRemove.push(productInfo.product_code);
+                }
+            });
+            
+            return {
+                add: [...new Set(skusToAdd)],
+                remove: [...new Set(skusToRemove)]
+            };
         }
         
         // Загрузка товаров из БД для текущего чека
