@@ -1023,10 +1023,12 @@
                 await Promise.all(promises);
                 console.log('✅ Все операции выполнены успешно');
                 
-                // Обновляем теги Kommo после успешного сохранения
-                updateKommoTags().catch(error => {
+                // Обновляем теги Kommo после успешного сохранения (ждём завершения)
+                try {
+                    await updateKommoTags();
+                } catch (error) {
                     console.warn('⚠️ Не удалось обновить теги Kommo:', error.message);
-                });
+                }
             }
         }
         
