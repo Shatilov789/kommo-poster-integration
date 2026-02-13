@@ -680,6 +680,15 @@
             displaySelectedProducts();
         }
 
+        function hasUnsavedDraft() {
+            return selectedProducts.length > 0 ||
+                document.getElementById('clientFirstName').value.trim() !== '' ||
+                document.getElementById('clientLastName').value.trim() !== '' ||
+                document.getElementById('clientPhone').value.trim() !== '' ||
+                document.getElementById('clientEmail').value.trim() !== '' ||
+                document.getElementById('orderComment').value.trim() !== '';
+        }
+
         // Инициализация поиска
         function initializeSearch() {
             const searchInput = document.getElementById('productSearch');
@@ -697,6 +706,18 @@
             });
             
         }
+
+        // Ответ на запрос закрытия от родительского виджета Kommo
+        window.addEventListener('message', function(event) {
+            if (!event.data || event.data.type !== 'close-iframe') return;
+
+            if (hasUnsavedDraft()) {
+                const ok = window.confirm('Есть несохраненные данные формы. Закрыть окно и потерять изменения?');
+                if (!ok) return;
+            }
+
+            window.parent.postMessage({ type: 'iframe-ready-to-close' }, '*');
+        });
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
