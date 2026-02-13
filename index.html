@@ -457,44 +457,9 @@
                         <div id="searchResultsList"></div>
                     </div>
                     
-                    <!-- Быстрое добавление -->
-                    <div class="quick-add-section">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 10.01px; color: #555;">
-                                Выбранный товар:
-                            </label>
-                            <div id="selectedProductInfo" style="
-                                padding: 10px 12px; 
-                                background: #e8f5e8; 
-                                border: 1px solid #c3e6cb; 
-                                border-radius: 6px; 
-                                font-size: 10.78px;
-                                color: #155724;
-                                min-height: 38px;
-                                display: flex;
-                                align-items: center;
-                            ">
-                                Товар не выбран
-                            </div>
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 6px; font-weight: 500; font-size: 10.01px; color: #555;">
-                                Количество:
-                            </label>
-                            <input type="number" 
-                                   class="quantity-input" 
-                                   id="quickAddQuantity" 
-                                   value="1" 
-                                   min="1" 
-                                   max="999">
-                        </div>
-                        <button class="btn btn-success" 
-                                onclick="quickAddProduct()" 
-                                id="quickAddBtn" 
-                                disabled
-                                style="margin-top: 22px;">
-                            ➕ Добавить
-                        </button>
+                    <!-- Подсказка -->
+                    <div style="font-size: 9.24px; color: #8b9bc1; text-align: center; padding: 8px;">
+                        💡 Нажмите на товар в результатах поиска — он сразу добавится в чек
                     </div>
                 </div>
             </div>
@@ -873,68 +838,26 @@
             document.getElementById('searchResults').classList.remove('show');
         }
 
-        // Выбор товара из результатов поиска
+        // Выбор товара из результатов поиска — сразу добавляем в чек
         function selectProduct(productId) {
             const product = allProducts.find(p => p.product_id === productId);
             if (!product) return;
             
-            selectedProduct = product;
+            // Проверяем, не добавлен ли уже этот товар
+            const existingAdded = changes.added.find(item => item.product_id === productId);
+            if (existingAdded) {
+                existingAdded.quantity += 1;
+                showMessage(`Товар "${product.product_name}" — количество увеличено до ${existingAdded.quantity}`, 'success');
+            } else {
+                changes.added.push({ product_id: productId, quantity: 1 });
+                showMessage(`Товар "${product.product_name}" добавлен в чек`, 'success');
+            }
             
-            // Обновляем информацию о выбранном товаре
-            const infoContainer = document.getElementById('selectedProductInfo');
-            const code = product.product_code ? ` (${product.product_code})` : '';
-            const price = formatPrice(product.price * 100);
-            
-            infoContainer.innerHTML = `
-                <strong>${product.product_name || `ID: ${product.product_id}`}${code}</strong><br>
-                <small style="color: #6c757d;">ID: ${product.product_id} • Цена: ${price}</small>
-            `;
-            
-            // Активируем кнопку добавления
-            document.getElementById('quickAddBtn').disabled = false;
-            
-            // Скрываем результаты поиска
+            // Скрываем результаты поиска и очищаем поле
             hideSearchResults();
-            
-            // Очищаем поле поиска
             document.getElementById('productSearch').value = '';
             
-            console.log('✅ Выбран товар:', product);
-        }
-
-        // Быстрое добавление товара
-        function quickAddProduct() {
-            if (!selectedProduct) {
-                showMessage('Выберите товар для добавления', 'warning');
-                return;
-            }
-            
-            const quantityInput = document.getElementById('quickAddQuantity');
-            const qty = parseInt(quantityInput.value);
-            
-            if (qty < 1) {
-                showMessage('Количество должно быть больше 0', 'warning');
-                return;
-            }
-            
-            // Проверяем, не добавлен ли уже этот товар
-            const existingAdded = changes.added.find(item => item.product_id === selectedProduct.product_id);
-            if (existingAdded) {
-                existingAdded.quantity += qty;
-            } else {
-                changes.added.push({ product_id: selectedProduct.product_id, quantity: qty });
-            }
-            
-            showMessage(
-                `Товар "${selectedProduct.product_name}" (${qty} шт.) добавлен в чек`,
-                'success'
-            );
-            
-            // Сброс выбранного товара
-            selectedProduct = null;
-            document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
-            document.getElementById('quickAddBtn').disabled = true;
-            quantityInput.value = 1;
+            console.log('✅ Товар добавлен в чек:', product);
             
             // Перерисовываем чек
             displayTransaction();
@@ -1392,7 +1315,7 @@
                 totalSum += totalPrice;
                 
                 productsHtml += `
-                    <div class="product" data-id="${addedItem.product_id}" draggable="true" style="background: #e8f5e8; border-left: 4px solid #28a745;">
+                    <div class="product" data-id="${addedItem.product_id}" draggable="true" style="background: #fff9e6; border-left: 4px solid #ffc107;">
                         <div class="drag-handle" title="Перетащите для изменения порядка">⋮⋮</div>
                         <label class="collect-label">
                             <input type="checkbox" 
@@ -1401,7 +1324,7 @@
                                    title="Пометить для досборки">
                         </label>
                         <div class="product-name">
-                            <div>${productName}${productCode} <span style="color: #28a745; font-size: 12px; font-weight: bold;">НОВЫЙ</span></div>
+                            <div>${productName}${productCode} <span style="background: #ffc107; color: #333; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 3px;">НОВЫЙ</span></div>
                             <div class="product-id">ID: ${addedItem.product_id} • ${formatPrice(unitPrice)} за шт. × ${addedItem.quantity}</div>
                         </div>
                         <div class="product-controls">
@@ -1535,8 +1458,6 @@
             if (confirm('Очистить все несохраненные изменения? Это действие нельзя отменить.')) {
                 changes = { added: [], modified: [], removed: [], reordered: [] };
                 selectedProduct = null;
-                document.getElementById('selectedProductInfo').textContent = 'Товар не выбран';
-                document.getElementById('quickAddBtn').disabled = true;
                 console.log('🧹 Локальные изменения очищены');
                 showMessage('Все несохраненные изменения очищены', 'success');
                 displayTransaction();
