@@ -457,13 +457,13 @@
             }
         }
 
-        // Загрузка всех товаров (используем тот же подход, что и в index.html)
+        // Загрузка всех товаров
         async function loadAllProducts() {
             try {
                 console.log('📦 Загружаем все товары из базы данных...');
                 
-                // Используем правильный формат URL для products-db через прокси
-                const url = `${PRODUCTS_API}&path=products&limit=100000`;
+                // limit=10000 — с запасом, чтобы загрузить все товары за один запрос
+                const url = `${PRODUCTS_API}&path=products&limit=10000`;
                 console.log('🌐 URL запроса товаров:', url);
                 
                 const response = await fetch(url, {
@@ -485,7 +485,7 @@
                 }
                 
                 const data = await response.json();
-                console.log('📋 Ответ от API товаров:', data);
+                console.log('📋 Ответ от API товаров: count =', data.count);
                 
                 if (data.success && data.data) {
                     allProducts = data.data;
@@ -906,9 +906,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
