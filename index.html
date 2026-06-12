@@ -484,7 +484,9 @@
         let searchTimeout = null; // Таймаут для поиска
         let currentFilter = 'all'; // Текущий фильтр поиска
         let changes = { added: [], modified: [], removed: [], reordered: [] };
-        let pendingCollectItems = new Set(); // Товары к досборке (сохраняется локально)
+        let pendingCollectItems = new Set();
+        let savedCustomizations = null; // Порядок + цвета с сервера
+        let saveCustomizationsTimeout = null; // debounce
 
         // Drag & Drop переменные
         let draggedElement = null;
@@ -629,10 +631,11 @@
         }
         
         function saveCurrentOrder() {
-            const productElements = document.querySelectorAll('.product[data-id]');
+            const productElements = document.querySelectorAll('#productsList .product[data-id]');
             const newOrder = Array.from(productElements).map(el => el.dataset.id);
             changes.reordered = newOrder;
             console.log('💾 Сохранен новый порядок:', newOrder);
+            saveCustomizationsToServer();
         }
 
         // API запрос
@@ -891,39 +894,73 @@
                 showMessage('Товар помечен для досборки', 'success');
             }
             
-            // Сохраняем в localStorage для сохранения между сессиями
             savePendingCollectItems();
             
             // Перерисовываем чек
             displayTransaction();
         }
         
-        function savePendingCollectItems() {
+        // === Серверное хранение кастомизаций (порядок + цвета + досборка) ===
+        async function loadCustomizations() {
             try {
-                const data = {
-                    transactionId: transactionId,
-                    items: Array.from(pendingCollectItems),
-                    timestamp: new Date().toISOString()
-                };
-                localStorage.setItem(`poster_pending_collect_${transactionId}`, JSON.stringify(data));
-                console.log('💾 Список досборки сохранен:', data);
-            } catch (error) {
-                console.warn('⚠️ Не удалось сохранить список досборки:', error);
-            }
-        }
-        
-        function loadPendingCollectItems() {
-            try {
-                const saved = localStorage.getItem(`poster_pending_collect_${transactionId}`);
-                if (saved) {
-                    const data = JSON.parse(saved);
-                    pendingCollectItems = new Set(data.items || []);
-                    console.log('📂 Список досборки загружен:', Array.from(pendingCollectItems));
+                const url = `${API_BASE}?action=get_customizations&transaction_id=${encodeURIComponent(transactionId)}`;
+                const response = await fetch(url, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                const result = await response.json();
+                if (result.success && result.data) {
+                    savedCustomizations = result.data;
+                    pendingCollectItems = new Set(result.data.colors || []);
+                    console.log('📂 Кастомизации загружены с сервера:', savedCustomizations);
+                } else {
+                    savedCustomizations = null;
+                    pendingCollectItems = new Set();
                 }
             } catch (error) {
-                console.warn('⚠️ Не удалось загрузить список досборки:', error);
+                console.warn('⚠️ Не удалось загрузить кастомизации:', error);
+                savedCustomizations = null;
                 pendingCollectItems = new Set();
             }
+        }
+
+        function saveCustomizationsToServer() {
+            clearTimeout(saveCustomizationsTimeout);
+            saveCustomizationsTimeout = setTimeout(async () => {
+                try {
+                    const productElements = document.querySelectorAll('#productsList .product[data-id]');
+                    const order = Array.from(productElements).map(el => el.dataset.id);
+                    const colors = Array.from(pendingCollectItems);
+
+                    const response = await fetch(`${API_BASE}?action=save_customizations`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'true'
+                        },
+                        body: JSON.stringify({
+                            transaction_id: transactionId,
+                            order: order,
+                            colors: colors
+                        })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('💾 Кастомизации сохранены на сервер');
+                    } else {
+                        console.warn('⚠️ Ошибка сохранения кастомизаций:', result.error);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Не удалось сохранить кастомизации:', error);
+                }
+            }, 500);
+        }
+
+        function savePendingCollectItems() {
+            saveCustomizationsToServer();
+        }
+
+        function loadPendingCollectItems() {
+            // Загрузка теперь через loadCustomizations() в loadTransaction
         }
 
         // Переключение фильтров
@@ -1013,8 +1050,7 @@
             
             // Примечание о порядке товаров
             if (changes.reordered && changes.reordered.length > 0) {
-                console.log('🔄 Новый порядок товаров сохранен локально:', changes.reordered);
-                console.log('ℹ️ API Poster не поддерживает изменение порядка товаров');
+                console.log('🔄 Порядок товаров сохранён на сервер:', changes.reordered);
             }
             
             // Выполняем все операции параллельно
@@ -1163,14 +1199,12 @@
                 transaction = data.response[0];
                 console.log('📋 Чек загружен:', transaction);
                 
-                // Загружаем товары для чека и все товары для поиска параллельно
+                // Загружаем товары, все товары для поиска, и кастомизации параллельно
                 await Promise.all([
                     loadProductsFromDB(),
-                    loadAllProducts()
+                    loadAllProducts(),
+                    loadCustomizations()
                 ]);
-                
-                // Загружаем сохраненные пометки досборки
-                loadPendingCollectItems();
                 
                 cleanupDuplicates();
                 displayTransaction();
@@ -1204,15 +1238,27 @@
                 }
             }
             
-            const products = transaction.products || [];
+            let products = [...(transaction.products || [])];
+
+            // Применяем сохранённый порядок с сервера
+            if (savedCustomizations && savedCustomizations.order && savedCustomizations.order.length > 0) {
+                const orderMap = {};
+                savedCustomizations.order.forEach((id, idx) => { orderMap[id] = idx; });
+                products.sort((a, b) => {
+                    const aIdx = orderMap[a.product_id] !== undefined ? orderMap[a.product_id] : 99999;
+                    const bIdx = orderMap[b.product_id] !== undefined ? orderMap[b.product_id] : 99999;
+                    return aIdx - bIdx;
+                });
+            }
+
             if (products.length === 0 && changes.added.length === 0) {
                 document.getElementById('productsList').innerHTML = '<div class="product">В чеке нет товаров</div>';
                 return;
             }
-            
+
             let productsHtml = '';
             let totalSum = 0;
-            
+
             products.forEach(product => {
                 const totalPrice = product.product_price;
                 const quantity = parseFloat(product.num);
@@ -1410,7 +1456,7 @@
                     let message = `✅ Изменения сохранены! Добавлено: ${changes.added.length}, изменено: ${changes.modified.length}, удалено: ${changes.removed.length}`;
                     
                     if (changes.reordered && changes.reordered.length > 0) {
-                        message += `. Порядок товаров изменен (сохранен локально)`;
+                        message += `. Порядок товаров изменен`;
                     }
                     
                     showMessage(message, 'success');
@@ -1640,8 +1686,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
