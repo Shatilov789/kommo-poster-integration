@@ -288,6 +288,14 @@
                 <div class="card-header">⚙️ Дополнительные настройки</div>
                 <div class="card-body">
                     <div class="form-group">
+                        <label class="form-label">Заклад (точка продажу) *</label>
+                        <select class="form-select" id="spotId">
+                            <option value="1">Кущ</option>
+                            <option value="2">Кущ інтернет магазин</option>
+                            <option value="3" selected>Каса Каріна</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">Комментарий к заказу</label>
                         <textarea class="form-input" id="orderComment" rows="3" placeholder="Комментарий к заказу"></textarea>
                     </div>
@@ -575,8 +583,9 @@
             };
             
             // Подготовка данных заказа
+            const spotIdValue = parseInt(document.getElementById('spotId').value) || 1;
             const orderData = {
-                spotId: 1,
+                spotId: spotIdValue,
                 guestsCount: 1,
                 serviceMode: serviceMode,
                 autoAccept: true,
@@ -788,5 +797,3 @@
     </script>
 </body>
 </html>
-
-
