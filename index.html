@@ -985,14 +985,15 @@
         // Реальное сохранение через Poster API
         async function saveChangesAPI() {
             const promises = [];
-            
+            const spotId = String(transaction?.spot_id || '1');
+
             // Добавление новых товаров
             for (const item of changes.added) {
                 console.log('➕ Добавляем товар:', item.product_id, 'количество:', item.quantity);
-                
+
                 if (item.quantity === 1) {
                     const promise = apiRequest('transactions.addTransactionProduct', {
-                        spot_id: '1',
+                        spot_id: spotId,
                         spot_tablet_id: '1',
                         transaction_id: transactionId,
                         product_id: item.product_id
@@ -1000,33 +1001,33 @@
                     promises.push(promise);
                 } else {
                     console.log(`📦 Добавляем товар ${item.product_id}, потом устанавливаем количество ${item.quantity}`);
-                    
+
                     const addPromise = apiRequest('transactions.addTransactionProduct', {
-                        spot_id: '1',
+                        spot_id: spotId,
                         spot_tablet_id: '1',
                         transaction_id: transactionId,
                         product_id: item.product_id
                     }).then(() => {
                         console.log(`📝 Устанавливаем количество товара ${item.product_id} на ${item.quantity}`);
                         return apiRequest('transactions.changeTransactionProductCount', {
-                            spot_id: '1',
+                            spot_id: spotId,
                             spot_tablet_id: '1',
                             transaction_id: transactionId,
                             product_id: item.product_id,
                             count: item.quantity.toString()
                         });
                     });
-                    
+
                     promises.push(addPromise);
                 }
             }
-            
+
             // Изменение количества существующих товаров
             for (const item of changes.modified) {
                 console.log('📝 Изменяем количество товара:', item.product_id, 'на:', item.quantity);
-                
+
                 const promise = apiRequest('transactions.changeTransactionProductCount', {
-                    spot_id: '1',
+                    spot_id: spotId,
                     spot_tablet_id: '1',
                     transaction_id: transactionId,
                     product_id: item.product_id,
@@ -1034,13 +1035,13 @@
                 });
                 promises.push(promise);
             }
-            
+
             // Удаление товаров
             for (const item of changes.removed) {
                 console.log('❌ Удаляем товар:', item.product_id);
-                
+
                 const promise = apiRequest('transactions.removeTransactionProduct', {
-                    spot_id: '1',
+                    spot_id: spotId,
                     spot_tablet_id: '1',
                     transaction_id: transactionId,
                     product_id: item.product_id
@@ -1271,7 +1272,7 @@
                 const unitPrice = Math.round(totalPrice / quantity);
                 
                 const isMarkedForRemoval = changes.removed.some(r => r.product_id === product.product_id);
-                const isPendingCollect = pendingCollectItems.has(product.product_id);
+                const isPendingCollect = pendingCollectItems.has(String(product.product_id));
                 
                 if (!isMarkedForRemoval) {
                     totalSum += parseInt(totalPrice);
